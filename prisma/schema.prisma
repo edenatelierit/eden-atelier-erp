@@ -1,0 +1,838 @@
+// Wood and Stones ERP — normalized foundation
+// Client owns contact data. Projects belong to a client.
+// Users carry RBAC. AuditLog records every write. Files attach by entity.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  SALES
+  DESIGNER
+  FACTORY
+  INSTALLER
+  ACCOUNTANT
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum ClientStatus {
+  NEW
+  CONTACTED
+  CONVERTED
+}
+
+enum LeadSource {
+  INSTAGRAM
+  WORD_OF_MOUTH
+  WALK_IN
+  WEBSITE
+  REFERRAL
+  OTHER
+}
+
+enum ProjectStatus {
+  LEAD
+  SURVEY
+  DESIGN
+  PRODUCTION
+  LOGISTICS
+  INSTALLATION
+  COMPLETED
+  ON_HOLD
+}
+
+enum AttachmentEntityType {
+  SITE_SURVEY
+  MATERIAL_APPROVAL
+  DELIVERY_NOTE
+  SERVICE_REQUEST
+  HANDOVER_CERTIFICATE
+  QUOTATION
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  APPROVED
+  REJECTED
+}
+
+enum WarrantyStatus {
+  UNDER_WARRANTY
+  CHARGEABLE
+  TO_BE_ASSESSED
+}
+
+enum ServiceRequestStatus {
+  OPEN
+  WAITING_MATERIAL
+  COMPLETED
+}
+
+enum MaterialApprovalStatus {
+  APPROVED
+  APPROVED_WITH_COMMENTS
+  REJECTED
+}
+
+enum DrawingApprovalStatus {
+  APPROVED
+  APPROVED_WITH_COMMENTS
+  REVISE
+  REJECTED
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+}
+
+enum AccountType {
+  BANK
+  CASH
+  PETTY_CASH
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum Currency {
+  USD
+  LBP
+}
+
+enum CategoryType {
+  INVENTORY
+  EXPENSE
+  LEAD_SOURCE
+}
+
+enum VariationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SupplierCategory {
+  WOOD
+  STONE
+  HARDWARE
+  GENERAL
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(SALES)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  auditLogs  AuditLog[]
+  uploads    FileAttachment[]
+
+  @@index([role])
+}
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  userId    String?
+  action    AuditAction
+  entity    String
+  entityId  String
+  details   Json?
+  timestamp DateTime    @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([timestamp])
+}
+
+model Client {
+  id            String       @id @default(cuid())
+  leadNumber    String       @unique
+  name          String
+  contactPerson String?
+  phone         String
+  email         String
+  source        LeadSource
+  status        ClientStatus @default(NEW)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  projects Project[]
+
+  @@index([name])
+  @@index([status])
+  @@index([phone])
+}
+
+model Project {
+  id                    String        @id @default(cuid())
+  clientId              String
+  projectNumber         String        @unique
+  location              String
+  targetBudget          Decimal?
+  targetCompletionDate  DateTime?
+  preferredStyle        String?
+  preferredWood         String?
+  preferredStone        String?
+  preferredColors       String?
+  preferredHardware     String?
+  areasIncluded         Json?
+  status                ProjectStatus @default(LEAD)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  client             Client             @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  siteSurvey         SiteSurvey?
+  contract           Contract?
+  materialApprovals  MaterialApproval[]
+  drawingApprovals   DrawingApproval[]
+  cuttingListParts   CuttingListPart[]
+  purchaseOrders     PurchaseOrder[]
+  qualityControl     QualityControl?
+  deliveryNotes         DeliveryNote[]
+  handoverCertificate   HandoverCertificate?
+  serviceRequests       ServiceRequest[]
+  quotation             Quotation?
+  installationReports   InstallationReport[]
+  paymentStages         PaymentStage[]
+  workOrderPipeline     WorkOrderPipeline?
+  variationOrders       VariationOrder[]
+  cashTransactions      Transaction[]
+  timesheets            Timesheet[]
+  invoices              Invoice[]
+
+  @@index([clientId])
+  @@index([status])
+}
+
+/// Field visit captured against a single project. One survey record per job.
+model SiteSurvey {
+  id        String @id @default(cuid())
+  projectId String @unique
+
+  electrical Boolean @default(false)
+  plumbing   Boolean @default(false)
+  drainage   Boolean @default(false)
+  gas        Boolean @default(false)
+  ac         Boolean @default(false)
+  lighting   Boolean @default(false)
+
+  elevator      Boolean @default(false)
+  loadingAccess Boolean @default(false)
+  craneRequired Boolean @default(false)
+
+  restrictions    String?
+  observations    String?
+  photoReferences String?
+  photoUrls       Json     @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+/// Commercial terms and legal compliance checklist for a project.
+model Contract {
+  id        String @id @default(cuid())
+  projectId String @unique
+
+  contractValue     Float?
+  specialConditions String?
+  projectDuration   String?
+  warrantyPeriod    String?
+
+  scopeOfWorkAttached              Boolean @default(false)
+  paymentTermsAgreed               Boolean @default(false)
+  shopDrawingApprovalRequired      Boolean @default(false)
+  materialApprovalRequired         Boolean @default(false)
+  siteReadinessDefined             Boolean @default(false)
+  variationsRequireWrittenApproval Boolean @default(false)
+  delayTermsIncluded               Boolean @default(false)
+  warrantyTermsIncluded            Boolean @default(false)
+  cancellationTermsIncluded        Boolean @default(false)
+  governingLawReviewed             Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+/// Client-facing material specification and sample sign-off.
+model MaterialApproval {
+  id             String                 @id @default(cuid())
+  projectId      String
+  itemLocation   String
+  material       String
+  supplier       String
+  supplierId     String?
+  productCode    String
+  thickness      String
+  finish         String
+  sampleAttached Boolean                @default(false)
+  status         MaterialApprovalStatus
+  comments       String?
+  photoUrls      Json                   @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  directoryVendor Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([status])
+  @@index([supplierId])
+}
+
+/// Shop drawing revision log for a project.
+model DrawingApproval {
+  id        String                @id @default(cuid())
+  projectId String
+  drawingNo String
+  title     String
+  revision  String
+  status    DrawingApprovalStatus
+  comments  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([status])
+}
+
+/// One fabricated part on the project cutting list.
+model CuttingListPart {
+  id          String @id @default(cuid())
+  projectId   String
+  partNumber  String
+  description String
+  qty         Int
+  length      Float
+  width       Float
+  thickness   Float
+  material    String
+  edge1       String?
+  edge2       String?
+  notes       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+/// Supplier purchase line against a project.
+model PurchaseOrder {
+  id               String   @id @default(cuid())
+  projectId        String
+  supplierId       String?
+  poNumber         String   @unique
+  item             String
+  description      String
+  specification    String
+  qty              Int
+  unit             String
+  unitPrice        Float
+  total            Float
+  requiredDate     DateTime
+  deliveryLocation String
+  remarks          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  supplier       Supplier?       @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  receivingNotes ReceivingNote[]
+
+  @@index([projectId])
+  @@index([supplierId])
+}
+
+/// Goods receipt recorded against a purchase order.
+model ReceivingNote {
+  id              String   @id @default(cuid())
+  purchaseOrderId String
+  receivedQty     Int
+  condition       String
+  shortageDamage  String
+  checkedBy       String
+  date            DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseOrderId])
+}
+
+/// Factory / site quality checklist for a project.
+model QualityControl {
+  id        String @id @default(cuid())
+  projectId String @unique
+
+  inspector String
+  workOrder String
+  unitArea  String
+
+  dimensionsMatch            Boolean @default(false)
+  correctMaterial            Boolean @default(false)
+  correctFinishColor         Boolean @default(false)
+  grainVeinDirectionCorrect  Boolean @default(false)
+  edgesProperlyFinished      Boolean @default(false)
+  jointsClean                Boolean @default(false)
+  hardwareCorrect            Boolean @default(false)
+  doorsDrawersAligned        Boolean @default(false)
+  noScratchesDamage          Boolean @default(false)
+  stoneCutoutsCorrect        Boolean @default(false)
+  stoneEdgeProfileAcceptable Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+/// Dispatch record for a project delivery.
+model DeliveryNote {
+  id               String   @id @default(cuid())
+  projectId        String
+  deliveryDateTime DateTime
+  vehicleDriver    String
+  itemsDelivered   String
+  quantity         Int
+  conditionRemarks String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+/// Site handover checklist and snag list. One certificate per project.
+model HandoverCertificate {
+  id        String   @id @default(cuid())
+  projectId String   @unique
+  handoverDate DateTime
+
+  woodJoinery       Boolean @default(false)
+  kitchen           Boolean @default(false)
+  wardrobes         Boolean @default(false)
+  stoneWorks        Boolean @default(false)
+  countertops       Boolean @default(false)
+  careInstructions  Boolean @default(false)
+  warrantyProvided  Boolean @default(false)
+  finalDrawings     Boolean @default(false)
+
+  outstandingItems String?
+  remarks          String?
+  photoUrls        Json     @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+/// After-care / field ticket. Lives on a project so client data is never re-keyed.
+model ServiceRequest {
+  id             String               @id @default(cuid())
+  projectId      String
+  dateReported   DateTime
+  issue          String
+  warrantyStatus WarrantyStatus
+  technician     String
+  visitDate      DateTime?
+  diagnosis      String?
+  status         ServiceRequestStatus @default(OPEN)
+  photoUrls      Json                 @default("[]")
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([status])
+}
+
+/// Daily site installation log. Many reports can exist per project.
+model InstallationReport {
+  id        String @id @default(cuid())
+  projectId String
+
+  reportDate         DateTime
+  supervisor         String
+  teamOnSite         String
+  workCompleted      String
+  workRemaining      String
+  issuesDelays       String
+  materialsRequired  String
+  nextPlannedWork    String
+
+  siteReady            Boolean @default(false)
+  materialsAvailable   Boolean @default(false)
+  workAreaAccessible   Boolean @default(false)
+  photosTaken          Boolean @default(false)
+
+  photoUrls Json @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([reportDate])
+}
+
+/// Contract payment milestone. Several stages exist per project.
+model PaymentStage {
+  id         String        @id @default(cuid())
+  projectId  String
+  stageName  String
+  percentage Float
+  amount     Float
+  dueDate    DateTime?
+  invoiceRef String?
+  paidDate   DateTime?
+  amountPaid Float         @default(0)
+  balance    Float
+  status     PaymentStatus @default(PENDING)
+  notes      String?
+  sortOrder  Int           @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([status])
+}
+
+/// Factory floor progress for one project. One pipeline record per job.
+model WorkOrderPipeline {
+  id        String @id @default(cuid())
+  projectId String @unique
+
+  materialIssued   Boolean @default(false)
+  cutting          Boolean @default(false)
+  cnc              Boolean @default(false)
+  edgeBanding      Boolean @default(false)
+  assembly         Boolean @default(false)
+  finishing        Boolean @default(false)
+  hardware         Boolean @default(false)
+  stoneFabrication Boolean @default(false)
+  qc               Boolean @default(false)
+  packing          Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+/// Formal commercial offer issued against a project.
+model Quotation {
+  id        String @id @default(cuid())
+  projectId String @unique
+
+  scopeSummary   String
+  subtotal       Float
+  vat            Float
+  total          Float
+  paymentTerms   String
+  leadTimeWeeks  Int
+  validUntil     DateTime
+  status         QuotationStatus @default(DRAFT)
+
+  kitchenScopeIncluded Boolean @default(false)
+  stoneScopeIncluded   Boolean @default(false)
+  exclusionsListed     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+/// Corporate bank, cash, or petty-cash book.
+model Account {
+  id       String      @id @default(cuid())
+  name     String
+  type     AccountType
+  balance  Float       @default(0)
+  currency Currency    @default(USD)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions Transaction[]
+
+  @@index([type])
+}
+
+/// Unified cashbook line. Optional projectId supports job costing.
+model Transaction {
+  id           String          @id @default(cuid())
+  date         DateTime
+  type         TransactionType
+  category     String
+  categoryId   String?
+  amount       Float
+  currency     Currency        @default(USD)
+  exchangeRate Float?
+  reference    String?
+  notes        String?
+  accountId    String
+  projectId    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  account        Account   @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  project        Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  masterCategory Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([accountId])
+  @@index([projectId])
+  @@index([date])
+  @@index([type])
+  @@index([currency])
+  @@index([categoryId])
+}
+
+/// Written change to a project contract.
+model VariationOrder {
+  id                    String          @id @default(cuid())
+  projectId             String
+  voNumber              String          @unique
+  date                  DateTime
+  requestedBy           String
+  originalContractValue Float
+  scopeVariation        String
+  reason                String
+  costImpact            Float
+  timeImpactDays        Int
+  revisedContractValue  Float
+  status                VariationStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([status])
+}
+
+/// Global vendor directory used by procurement and material approvals.
+model Supplier {
+  id            String           @id @default(cuid())
+  name          String
+  category      SupplierCategory
+  contactPerson String?
+  phone         String?
+  email         String?
+  paymentTerms  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchaseOrders    PurchaseOrder[]
+  materialApprovals MaterialApproval[]
+  inventoryItems    InventoryItem[]
+
+  @@index([name])
+  @@index([category])
+}
+
+/// Workspace-managed inventory, expense, or lead-source category.
+model Category {
+  id       String       @id @default(cuid())
+  nameEn   String
+  nameAr   String
+  type     CategoryType
+  code     String
+  isSystem Boolean      @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inventoryItems InventoryItem[]
+  transactions   Transaction[]
+
+  @@unique([type, code])
+  @@index([type])
+  @@index([code])
+}
+
+/// Workspace-managed unit of measure for stock quantities.
+model UnitOfMeasure {
+  id       String  @id @default(cuid())
+  nameEn   String
+  nameAr   String
+  symbol   String  @unique
+  isSystem Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inventoryItems InventoryItem[]
+
+  @@index([symbol])
+}
+
+/// Raw material or consumable held in factory stock.
+model InventoryItem {
+  id               String  @id @default(cuid())
+  sku              String  @unique
+  name             String
+  categoryId       String
+  unitId           String
+  supplierId       String?
+  costPrice        Float   @default(0)
+  sellingPrice     Float?
+  location         String?
+  quantityInStock  Float   @default(0)
+  minimumThreshold Float   @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  unit     UnitOfMeasure @relation(fields: [unitId], references: [id], onDelete: Restrict)
+  supplier Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+
+  @@index([name])
+  @@index([categoryId])
+  @@index([unitId])
+  @@index([supplierId])
+}
+
+/// Workshop or site labour record.
+model Employee {
+  id        String         @id @default(cuid())
+  name      String
+  position  String
+  phone     String
+  dailyRate Float
+  status    EmployeeStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  timesheets Timesheet[]
+
+  @@index([status])
+  @@index([name])
+}
+
+/// Daily hours logged against an employee, optionally a project.
+model Timesheet {
+  id          String   @id @default(cuid())
+  employeeId  String
+  projectId   String?
+  date        DateTime
+  hoursWorked Float
+  notes       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  project  Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([employeeId])
+  @@index([projectId])
+  @@index([date])
+}
+
+/// Tax invoice issued against a project payment milestone.
+model Invoice {
+  id              String        @id @default(cuid())
+  projectId       String
+  invoiceNumber   String        @unique
+  issueDate       DateTime
+  dueDate         DateTime
+  subtotal        Float
+  vat             Float
+  total           Float
+  currency        Currency      @default(USD)
+  exchangeRateLbp Float         @default(0)
+  vatAmountLbp    Float         @default(0)
+  totalLbp        Float         @default(0)
+  mofNumber       String        @default("")
+  tvaNumber       String        @default("")
+  crNumber        String        @default("")
+  status          InvoiceStatus @default(DRAFT)
+  stageName       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([status])
+  @@index([currency])
+}
+
+/// Polymorphic attachment. entityId + entityType point at a Project (or later, other records).
+model FileAttachment {
+  id         String               @id @default(cuid())
+  entityId   String
+  entityType AttachmentEntityType
+  fileUrl    String
+  uploadedBy String
+  createdAt  DateTime             @default(now())
+
+  uploader User @relation(fields: [uploadedBy], references: [id], onDelete: Restrict)
+
+  @@index([entityType, entityId])
+  @@index([uploadedBy])
+}
