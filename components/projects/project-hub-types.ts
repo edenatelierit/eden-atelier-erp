@@ -11,6 +11,7 @@ import type { CuttingListPartValues } from "@/lib/validations/production";
 import type { WorkOrderPipelineValues } from "@/lib/validations/pipeline";
 import type { QuotationFormValues } from "@/lib/validations/quotation";
 import type { SurveyFormValues } from "@/lib/validations/survey";
+import type { UnitOption } from "@/lib/validations/category";
 import type { PhotoItem } from "@/lib/photos";
 import type { SupplierOption } from "@/lib/validations/supplier";
 import type { InvoiceStatusValue } from "@/lib/validations/invoice";
@@ -41,10 +42,14 @@ export type MaterialApprovalRow = {
   itemLocation: string;
   material: string;
   supplier: string;
+  supplierId: string;
   productCode: string;
   thickness: string;
   finish: string;
   sampleAttached: boolean;
+  hasPhysicalSample: boolean;
+  hasPhotograph: boolean;
+  hasTechnicalData: boolean;
   status: string;
   comments: string | null;
   photos: PhotoItem[];
@@ -64,11 +69,27 @@ export type ServiceRequestRow = {
 
 export type DrawingApprovalRow = {
   id: string;
-  drawingNo: string;
+  drawingNumber: string;
   title: string;
   revision: string;
+  fileUrl: string | null;
   status: string;
   comments: string | null;
+};
+
+export type BoqItemRow = {
+  id: string;
+  itemCode: string;
+  description: string;
+  material: string;
+  unitId: string;
+  unitSymbol: string;
+  quantity: number;
+  materialCost: number;
+  laborCost: number;
+  otherCost: number;
+  totalCost: number;
+  sellingPrice: number;
 };
 
 export type PaymentStageRow = {
@@ -146,6 +167,9 @@ export type ProjectHubData = {
   contract: ContractFormValues | null;
   materialApprovals: MaterialApprovalRow[];
   drawingApprovals: DrawingApprovalRow[];
+  boqItems: BoqItemRow[];
+  units: UnitOption[];
+  hasApprovedShopDrawing: boolean;
   cuttingList: CuttingListPartValues[];
   workOrderPipeline: WorkOrderPipelineValues;
   purchaseOrders: PurchaseOrderLineValues[];

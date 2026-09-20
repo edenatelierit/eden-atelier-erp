@@ -1,13 +1,14 @@
 export const MATERIAL_APPROVAL_STATUSES = [
   { value: "APPROVED", label: "Approved" },
   { value: "APPROVED_WITH_COMMENTS", label: "Approved with comments" },
+  { value: "REVISE_RESUBMIT", label: "Revise & Resubmit" },
   { value: "REJECTED", label: "Rejected" },
 ] as const;
 
 export const DRAWING_APPROVAL_STATUSES = [
   { value: "APPROVED", label: "Approved" },
   { value: "APPROVED_WITH_COMMENTS", label: "Approved with comments" },
-  { value: "REVISE", label: "Revise" },
+  { value: "REVISE_RESUBMIT", label: "Revise & Resubmit" },
   { value: "REJECTED", label: "Rejected" },
 ] as const;
 

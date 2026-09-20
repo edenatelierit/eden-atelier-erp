@@ -261,3 +261,66 @@ export async function listUnits() {
     throw error;
   }
 }
+
+export async function seedMasterDefaults() {
+  try {
+    const user = await requireAdminUser();
+    const { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES, DEFAULT_INVENTORY_CATEGORIES, DEFAULT_UNITS } =
+      await import("@/lib/master-defaults");
+
+    for (const unit of DEFAULT_UNITS) {
+      await prisma.unitOfMeasure.upsert({
+        where: { symbol: unit.symbol },
+        update: { nameEn: unit.nameEn, nameAr: unit.nameAr, isSystem: true },
+        create: { ...unit, isSystem: true },
+      });
+    }
+
+    for (const item of DEFAULT_INVENTORY_CATEGORIES) {
+      await prisma.category.upsert({
+        where: { type_code: { type: "INVENTORY", code: item.code } },
+        update: { nameEn: item.nameEn, nameAr: item.nameAr, isSystem: true },
+        create: { ...item, type: "INVENTORY", isSystem: true },
+      });
+    }
+
+    for (const item of DEFAULT_EXPENSE_CATEGORIES) {
+      await prisma.category.upsert({
+        where: { type_code: { type: "EXPENSE", code: item.code } },
+        update: { nameEn: item.nameEn, nameAr: item.nameAr, isSystem: true },
+        create: { ...item, type: "EXPENSE", isSystem: true },
+      });
+    }
+
+    for (const item of DEFAULT_INCOME_CATEGORIES) {
+      await prisma.category.upsert({
+        where: { type_code: { type: "INCOME", code: item.code } },
+        update: { nameEn: item.nameEn, nameAr: item.nameAr, isSystem: true },
+        create: { ...item, type: "INCOME", isSystem: true },
+      });
+    }
+
+    await writeAuditLog({
+      userId: user.id,
+      action: "CREATE",
+      entity: "MasterData",
+      entityId: "defaults",
+      details: {
+        units: DEFAULT_UNITS.length,
+        inventoryCategories: DEFAULT_INVENTORY_CATEGORIES.length,
+        expenseCategories: DEFAULT_EXPENSE_CATEGORIES.length,
+        incomeCategories: DEFAULT_INCOME_CATEGORIES.length,
+      },
+    });
+
+    revalidateWorkspace();
+    return { success: true as const };
+  } catch (error) {
+    if (isMissingTable(error)) {
+      return { error: "Apply the latest database schema before seeding master data." };
+    }
+    const message =
+      error instanceof Error ? error.message : "Unable to seed master data.";
+    return { error: message };
+  }
+}

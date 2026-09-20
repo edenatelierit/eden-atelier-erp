@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-export const CATEGORY_TYPES = ["INVENTORY", "EXPENSE", "LEAD_SOURCE"] as const;
+export const CATEGORY_TYPES = [
+  "INVENTORY",
+  "EXPENSE",
+  "INCOME",
+  "LEAD_SOURCE",
+] as const;
 export type CategoryTypeValue = (typeof CATEGORY_TYPES)[number];
 
 const codeSchema = z

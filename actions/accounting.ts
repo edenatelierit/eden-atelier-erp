@@ -107,24 +107,37 @@ export async function createTransaction(raw: TransactionFormValues) {
       ? Number(parsed.data.exchangeRate)
       : null;
     const categoryId =
-      parsed.data.type === "EXPENSE" ? parsed.data.categoryId?.trim() : null;
+      parsed.data.type === "EXPENSE" || parsed.data.type === "INCOME"
+        ? parsed.data.categoryId?.trim()
+        : null;
     let categoryLabel =
-      parsed.data.type === "EXPENSE"
-        ? ""
-        : parsed.data.category?.trim() || parsed.data.type;
+      parsed.data.type === "TRANSFER"
+        ? parsed.data.category?.trim() || "Transfer"
+        : "";
 
-    if (parsed.data.type === "EXPENSE") {
+    if (parsed.data.type === "EXPENSE" || parsed.data.type === "INCOME") {
+      const expectedType = parsed.data.type;
       if (!categoryId) {
-        return { error: "Select an expense category." };
+        return {
+          error:
+            expectedType === "INCOME"
+              ? "Select an income category."
+              : "Select an expense category.",
+        };
       }
-      const expenseCategory = await prisma.category.findUnique({
+      const masterCategory = await prisma.category.findUnique({
         where: { id: categoryId },
         select: { id: true, type: true, nameEn: true, code: true },
       });
-      if (!expenseCategory || expenseCategory.type !== "EXPENSE") {
-        return { error: "Select a valid expense category." };
+      if (!masterCategory || masterCategory.type !== expectedType) {
+        return {
+          error:
+            expectedType === "INCOME"
+              ? "Select a valid income category."
+              : "Select a valid expense category.",
+        };
       }
-      categoryLabel = expenseCategory.nameEn;
+      categoryLabel = masterCategory.nameEn;
     }
 
     if (projectId) {

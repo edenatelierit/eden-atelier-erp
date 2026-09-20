@@ -8,20 +8,13 @@ import { Loader2 } from "lucide-react";
 import { createClient, updateClient } from "@/actions/client";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Field,
   FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
 import { Form } from "@/components/ui/form";
+import { FormField, FormGrid } from "@/components/ui/form-grid";
+import { InlineFormPanel } from "@/components/ui/inline-form-panel";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -57,7 +50,7 @@ const emptyValues: ClientFormValues = {
   status: "NEW",
 };
 
-export function ClientFormDialog({
+export function ClientFormPanel({
   open,
   onOpenChange,
   client,
@@ -93,7 +86,7 @@ export function ClientFormDialog({
           }
         : emptyValues
     );
-  }, [open, client, form.reset]);
+  }, [open, client, form]);
 
   async function onSubmit(values: ClientFormValues) {
     setServerError(null);
@@ -110,56 +103,97 @@ export function ClientFormDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? t("clientForm.editTitle") : t("clientForm.createTitle")}
-          </DialogTitle>
-          <DialogDescription>{t("clientForm.description")}</DialogDescription>
-        </DialogHeader>
-
-        <Form form={form} onSubmit={onSubmit} className="space-y-5">
-          <FieldGroup>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <InlineFormPanel
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={isEditing ? t("clientForm.editTitle") : t("clientForm.createTitle")}
+      description={t("clientForm.description")}
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            {t("clientForm.cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="client-form"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin" />
+                {t("clientForm.saving")}
+              </>
+            ) : isEditing ? (
+              t("clientForm.saveChanges")
+            ) : (
+              t("clientForm.createClient")
+            )}
+          </Button>
+        </>
+      }
+    >
+      <Form
+        id="client-form"
+        form={form}
+        onSubmit={onSubmit}
+        className="space-y-4"
+      >
+        <FieldGroup>
+          <FormGrid>
             {isEditing ? (
-              <Field className="sm:col-span-2">
+              <FormField span="medium">
                 <FieldLabel>{t("clientForm.leadNumber")}</FieldLabel>
-                <Input value={client?.leadNumber ?? ""} readOnly className="bg-muted" />
-              </Field>
+                <Input
+                  value={client?.leadNumber ?? ""}
+                  readOnly
+                  className="bg-muted"
+                />
+              </FormField>
             ) : null}
 
-            <Field
-              className="sm:col-span-2"
+            <FormField
+              span="wide"
               data-invalid={!!form.formState.errors.name}
             >
               <FieldLabel htmlFor="name">{t("clientForm.name")}</FieldLabel>
               <Input id="name" {...form.register("name")} />
               <FieldError errors={[form.formState.errors.name]} />
-            </Field>
+            </FormField>
 
-            <Field data-invalid={!!form.formState.errors.contactPerson}>
-              <FieldLabel htmlFor="contactPerson">{t("clientForm.contactPerson")}</FieldLabel>
+            <FormField
+              span="medium"
+              data-invalid={!!form.formState.errors.contactPerson}
+            >
+              <FieldLabel htmlFor="contactPerson">
+                {t("clientForm.contactPerson")}
+              </FieldLabel>
               <Input id="contactPerson" {...form.register("contactPerson")} />
               <FieldError errors={[form.formState.errors.contactPerson]} />
-            </Field>
+            </FormField>
 
-            <Field data-invalid={!!form.formState.errors.phone}>
+            <FormField
+              span="medium"
+              data-invalid={!!form.formState.errors.phone}
+            >
               <FieldLabel htmlFor="phone">{t("clientForm.phone")}</FieldLabel>
               <Input id="phone" type="tel" {...form.register("phone")} />
               <FieldError errors={[form.formState.errors.phone]} />
-            </Field>
+            </FormField>
 
-            <Field
-              className="sm:col-span-2"
+            <FormField
+              span="medium"
               data-invalid={!!form.formState.errors.email}
             >
               <FieldLabel htmlFor="email">{t("clientForm.email")}</FieldLabel>
               <Input id="email" type="email" {...form.register("email")} />
               <FieldError errors={[form.formState.errors.email]} />
-            </Field>
+            </FormField>
 
-            <Field data-invalid={!!form.formState.errors.source}>
+            <FormField data-invalid={!!form.formState.errors.source}>
               <FieldLabel>{t("clientForm.source")}</FieldLabel>
               <Controller
                 control={form.control}
@@ -187,9 +221,9 @@ export function ClientFormDialog({
                 )}
               />
               <FieldError errors={[form.formState.errors.source]} />
-            </Field>
+            </FormField>
 
-            <Field data-invalid={!!form.formState.errors.status}>
+            <FormField data-invalid={!!form.formState.errors.status}>
               <FieldLabel>{t("clientForm.status")}</FieldLabel>
               <Controller
                 control={form.control}
@@ -217,39 +251,19 @@ export function ClientFormDialog({
                 )}
               />
               <FieldError errors={[form.formState.errors.status]} />
-            </Field>
-            </div>
-          </FieldGroup>
+            </FormField>
+          </FormGrid>
+        </FieldGroup>
 
-          {serverError ? (
-            <p className="text-sm text-destructive" role="alert">
-              {serverError}
-            </p>
-          ) : null}
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              {t("clientForm.cancel")}
-            </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? (
-                <>
-                  <Loader2 className="animate-spin" />
-                  {t("clientForm.saving")}
-                </>
-              ) : isEditing ? (
-                t("clientForm.saveChanges")
-              ) : (
-                t("clientForm.createClient")
-              )}
-            </Button>
-          </DialogFooter>
-        </Form>
-      </DialogContent>
-    </Dialog>
+        {serverError ? (
+          <p className="text-sm text-destructive" role="alert">
+            {serverError}
+          </p>
+        ) : null}
+      </Form>
+    </InlineFormPanel>
   );
 }
+
+/** @deprecated Use ClientFormPanel */
+export const ClientFormDialog = ClientFormPanel;

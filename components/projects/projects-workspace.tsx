@@ -1,12 +1,13 @@
 "use client";
 
 import { Plus } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Suspense, useState } from "react";
 
 import { deleteProject } from "@/actions/project";
 import {
-  ProjectFormDialog,
+  ProjectFormPanel,
   type ProjectClientOption,
   type ProjectEditRecord,
 } from "@/components/projects/project-form-dialog";
@@ -82,6 +83,13 @@ export function ProjectsWorkspace({
         </Button>
       </div>
 
+      <ProjectFormPanel
+        open={open}
+        onOpenChange={setOpen}
+        clients={clients}
+        project={selected}
+      />
+
       {clients.length > 0 ? (
         <Suspense fallback={<div className="h-8 max-w-sm rounded-lg border border-input bg-background" />}>
           <TableSearch />
@@ -142,12 +150,12 @@ export function ProjectsWorkspace({
                 {projects.map((project) => (
                   <TableRow key={project.id} className="hover:bg-muted/40">
                     <TableCell className="font-medium">
-                      <a
+                      <Link
                         href={withLocale(locale, `/projects/${project.id}`)}
                         className="text-primary hover:underline"
                       >
                         {project.projectNumber}
-                      </a>
+                      </Link>
                     </TableCell>
                     <TableCell>{project.clientName}</TableCell>
                     <TableCell className="whitespace-normal">
@@ -179,12 +187,12 @@ export function ProjectsWorkspace({
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-xs text-muted-foreground">
-                        <a
+                        <Link
                           href={withLocale(locale, `/projects/${project.id}`)}
                           className="text-primary hover:underline"
                         >
                           {project.projectNumber}
-                        </a>
+                        </Link>
                       </p>
                       <p className="font-medium">{project.clientName}</p>
                     </div>
@@ -216,12 +224,6 @@ export function ProjectsWorkspace({
         </>
       )}
 
-      <ProjectFormDialog
-        open={open}
-        onOpenChange={setOpen}
-        clients={clients}
-        project={selected}
-      />
       <ConfirmDeleteDialog
         open={Boolean(pendingDelete)}
         onOpenChange={(nextOpen) => {

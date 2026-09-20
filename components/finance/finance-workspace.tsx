@@ -17,14 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { InlineFormPanel } from "@/components/ui/inline-form-panel";
 import { FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Form } from "@/components/ui/form";
 import { FormField, FormGrid } from "@/components/ui/form-grid";
@@ -91,7 +84,7 @@ export type FinanceProjectOption = {
   projectNumber: string;
 };
 
-function AccountDialog({
+function AccountPanel({
   open,
   onOpenChange,
 }: {
@@ -124,21 +117,42 @@ function AccountDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{t("accounting.addAccount")}</DialogTitle>
-          <DialogDescription>{t("accounting.subtitle")}</DialogDescription>
-        </DialogHeader>
-        <Form form={form} onSubmit={onSubmit} className="space-y-4">
+    <InlineFormPanel
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={t("accounting.addAccount")}
+      description={t("accounting.subtitle")}
+      footer={
+        <>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="account-form"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin" />
+                {t("common.saving")}
+              </>
+            ) : (
+              t("accounting.saveAccount")
+            )}
+          </Button>
+        </>
+      }
+    >
+      <Form id="account-form" form={form} onSubmit={onSubmit} className="space-y-4">
           <FieldGroup>
             <FormGrid>
-              <FormField span="wide" data-invalid={!!form.formState.errors.name}>
+              <FormField span="medium" data-invalid={!!form.formState.errors.name}>
                 <FieldLabel htmlFor="acc-name">{t("accounting.accountName")}</FieldLabel>
                 <Input id="acc-name" {...form.register("name")} />
                 <FieldError errors={[form.formState.errors.name]} />
               </FormField>
-              <FormField data-invalid={!!form.formState.errors.type}>
+              <FormField span="medium" data-invalid={!!form.formState.errors.type}>
                 <FieldLabel>{t("accounting.accountType")}</FieldLabel>
                 <Controller
                   control={form.control}
@@ -216,39 +230,25 @@ function AccountDialog({
               {serverError}
             </p>
           ) : null}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? (
-                <>
-                  <Loader2 className="animate-spin" />
-                  {t("common.saving")}
-                </>
-              ) : (
-                t("accounting.saveAccount")
-              )}
-            </Button>
-          </DialogFooter>
         </Form>
-      </DialogContent>
-    </Dialog>
+    </InlineFormPanel>
   );
 }
 
-function TransactionDialog({
+function TransactionPanel({
   open,
   onOpenChange,
   accounts,
   projects,
   expenseCategories,
+  incomeCategories,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   accounts: FinanceAccountRow[];
   projects: FinanceProjectOption[];
   expenseCategories: CategoryOption[];
+  incomeCategories: CategoryOption[];
 }) {
   const { locale, t } = useI18n();
   const router = useRouter();
@@ -270,6 +270,8 @@ function TransactionDialog({
   const conversion = Boolean(
     selectedAccount && selectedAccount.currency !== currency
   );
+  const categoryOptions =
+    type === "INCOME" ? incomeCategories : expenseCategories;
 
   useEffect(() => {
     form.setValue("conversion", conversion);
@@ -286,6 +288,18 @@ function TransactionDialog({
     });
   }, [open, accounts, expenseCategories, form]);
 
+  useEffect(() => {
+    if (type === "EXPENSE") {
+      form.setValue("categoryId", expenseCategories[0]?.id ?? "");
+      form.setValue("category", "");
+    } else if (type === "INCOME") {
+      form.setValue("categoryId", incomeCategories[0]?.id ?? "");
+      form.setValue("category", "");
+    } else {
+      form.setValue("categoryId", "");
+    }
+  }, [type, expenseCategories, incomeCategories, form]);
+
   async function onSubmit(values: TransactionFormValues) {
     setServerError(null);
     const result = await createTransaction({ ...values, conversion });
@@ -298,13 +312,34 @@ function TransactionDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{t("accounting.addTransaction")}</DialogTitle>
-          <DialogDescription>{t("accounting.cashbookHint")}</DialogDescription>
-        </DialogHeader>
-        <Form form={form} onSubmit={onSubmit} className="space-y-4">
+    <InlineFormPanel
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={t("accounting.addTransaction")}
+      description={t("accounting.cashbookHint")}
+      footer={
+        <>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="transaction-form"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin" />
+                {t("common.saving")}
+              </>
+            ) : (
+              t("accounting.saveTransaction")
+            )}
+          </Button>
+        </>
+      }
+    >
+      <Form id="transaction-form" form={form} onSubmit={onSubmit} className="space-y-4">
           <FieldGroup>
             <FormGrid>
               <FormField data-invalid={!!form.formState.errors.date}>
@@ -312,7 +347,7 @@ function TransactionDialog({
                 <Input id="tx-date" type="date" {...form.register("date")} />
                 <FieldError errors={[form.formState.errors.date]} />
               </FormField>
-              <FormField data-invalid={!!form.formState.errors.accountId}>
+              <FormField span="medium" data-invalid={!!form.formState.errors.accountId}>
                 <FieldLabel>{t("accounting.account")}</FieldLabel>
                 <Controller
                   control={form.control}
@@ -406,14 +441,18 @@ function TransactionDialog({
                 />
                 <FieldError errors={[form.formState.errors.type]} />
               </FormField>
-              {type === "EXPENSE" ? (
-                <FormField data-invalid={!!form.formState.errors.categoryId}>
-                  <FieldLabel>{t("accounting.expenseCategory")}</FieldLabel>
+              {type === "EXPENSE" || type === "INCOME" ? (
+                <FormField span="medium" data-invalid={!!form.formState.errors.categoryId}>
+                  <FieldLabel>
+                    {type === "INCOME"
+                      ? t("accounting.incomeCategory")
+                      : t("accounting.expenseCategory")}
+                  </FieldLabel>
                   <Controller
                     control={form.control}
                     name="categoryId"
                     render={({ field }) => {
-                      const selected = expenseCategories.find(
+                      const selected = categoryOptions.find(
                         (row) => row.id === field.value
                       );
                       return (
@@ -431,7 +470,7 @@ function TransactionDialog({
                             </SelectValue>
                           </SelectTrigger>
                           <SelectContent alignItemWithTrigger={false}>
-                            {expenseCategories.map((row) => (
+                            {categoryOptions.map((row) => (
                               <SelectItem key={row.id} value={row.id}>
                                 {masterLabel(row, locale)}
                               </SelectItem>
@@ -481,7 +520,7 @@ function TransactionDialog({
                 <FieldLabel htmlFor="tx-ref">{t("accounting.reference")}</FieldLabel>
                 <Input id="tx-ref" {...form.register("reference")} />
               </FormField>
-              <FormField>
+              <FormField span="medium">
                 <FieldLabel>{t("accounting.project")}</FieldLabel>
                 <Controller
                   control={form.control}
@@ -526,24 +565,8 @@ function TransactionDialog({
               {serverError}
             </p>
           ) : null}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? (
-                <>
-                  <Loader2 className="animate-spin" />
-                  {t("common.saving")}
-                </>
-              ) : (
-                t("accounting.saveTransaction")
-              )}
-            </Button>
-          </DialogFooter>
         </Form>
-      </DialogContent>
-    </Dialog>
+    </InlineFormPanel>
   );
 }
 
@@ -552,11 +575,13 @@ export function FinanceWorkspace({
   transactions,
   projects,
   expenseCategories,
+  incomeCategories,
 }: {
   accounts: FinanceAccountRow[];
   transactions: FinanceTransactionRow[];
   projects: FinanceProjectOption[];
   expenseCategories: CategoryOption[];
+  incomeCategories: CategoryOption[];
 }) {
   const { locale, t } = useI18n();
   const [accountOpen, setAccountOpen] = useState(false);
@@ -569,6 +594,11 @@ export function FinanceWorkspace({
   const lbpTotal = accounts
     .filter((item) => item.currency === "LBP")
     .reduce((sum, item) => sum + item.balance, 0);
+
+  const ledgerCategories = useMemo(
+    () => [...incomeCategories, ...expenseCategories],
+    [incomeCategories, expenseCategories]
+  );
 
   const visibleTransactions = useMemo(() => {
     if (categoryFilter === "all") return transactions;
@@ -598,6 +628,16 @@ export function FinanceWorkspace({
           </Button>
         </div>
       </div>
+
+      <AccountPanel open={accountOpen} onOpenChange={setAccountOpen} />
+      <TransactionPanel
+        open={transactionOpen}
+        onOpenChange={setTransactionOpen}
+        accounts={accounts}
+        projects={projects}
+        expenseCategories={expenseCategories}
+        incomeCategories={incomeCategories}
+      />
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <Card>
@@ -674,7 +714,7 @@ export function FinanceWorkspace({
                 {categoryFilter === "all"
                   ? t("accounting.allCategories")
                   : masterLabel(
-                      expenseCategories.find((item) => item.id === categoryFilter) ?? {
+                      ledgerCategories.find((item) => item.id === categoryFilter) ?? {
                         nameEn: t("accounting.category"),
                         nameAr: t("accounting.category"),
                       },
@@ -684,7 +724,7 @@ export function FinanceWorkspace({
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
               <SelectItem value="all">{t("accounting.allCategories")}</SelectItem>
-              {expenseCategories.map((item) => (
+              {ledgerCategories.map((item) => (
                 <SelectItem key={item.id} value={item.id}>
                   {masterLabel(item, locale)}
                 </SelectItem>
@@ -764,14 +804,6 @@ export function FinanceWorkspace({
         </CardContent>
       </Card>
 
-      <AccountDialog open={accountOpen} onOpenChange={setAccountOpen} />
-      <TransactionDialog
-        open={transactionOpen}
-        onOpenChange={setTransactionOpen}
-        accounts={accounts}
-        projects={projects}
-        expenseCategories={expenseCategories}
-      />
     </div>
   );
 }

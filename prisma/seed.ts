@@ -2,6 +2,13 @@ import "dotenv/config";
 import { hash } from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
 
+import {
+  DEFAULT_EXPENSE_CATEGORIES,
+  DEFAULT_INCOME_CATEGORIES,
+  DEFAULT_INVENTORY_CATEGORIES,
+  DEFAULT_UNITS,
+} from "../lib/master-defaults";
+
 const prisma = new PrismaClient({
   datasources: {
     db: {
@@ -81,16 +88,7 @@ async function main() {
   console.log(`  client  ${client.leadNumber} ${client.name}`);
   console.log(`  project ${project.projectNumber} ${project.location}`);
 
-  const units = [
-    { symbol: "sheet", nameEn: "Sheet", nameAr: "لوح" },
-    { symbol: "slab", nameEn: "Slab", nameAr: "لوح رخام كامل" },
-    { symbol: "m²", nameEn: "Square Meter", nameAr: "متر مربع" },
-    { symbol: "lm", nameEn: "Linear Meter", nameAr: "متر طولي" },
-    { symbol: "m³", nameEn: "Cubic Meter", nameAr: "متر مكعب" },
-    { symbol: "pcs", nameEn: "Piece", nameAr: "قطعة" },
-    { symbol: "kg", nameEn: "Kilogram", nameAr: "كيلوغرام" },
-    { symbol: "L", nameEn: "Liter", nameAr: "لتر" },
-  ] as const;
+  const units = DEFAULT_UNITS;
 
   for (const unit of units) {
     await prisma.unitOfMeasure.upsert({
@@ -100,14 +98,7 @@ async function main() {
     });
   }
 
-  const inventoryCategories = [
-    { code: "MDF", nameEn: "Sheet Goods & MDF", nameAr: "الألواح والخشب المصنع" },
-    { code: "STN", nameEn: "Natural Stone & Marble", nameAr: "الرخام والأحجار الطبيعية" },
-    { code: "WVD", nameEn: "Wood Veneers & Solid Timber", nameAr: "القشور والأخشاب الصلبة" },
-    { code: "HDW", nameEn: "Hardware & Accessories", nameAr: "الإكسسوارات والمفصلات" },
-    { code: "GLU", nameEn: "Glues, Resins & Finishes", nameAr: "الغراء والمواد الكيميائية والدهانات" },
-    { code: "CON", nameEn: "Consumables & Tooling", nameAr: "المستهلكات وشفرات القص" },
-  ] as const;
+  const inventoryCategories = DEFAULT_INVENTORY_CATEGORIES;
 
   for (const item of inventoryCategories) {
     await prisma.category.upsert({
@@ -117,14 +108,7 @@ async function main() {
     });
   }
 
-  const expenseCategories = [
-    { code: "RENT", nameEn: "Factory Rent", nameAr: "إيجار المعمل" },
-    { code: "FUEL", nameEn: "Generator & Diesel Fuel", nameAr: "المحروقات واشتراك الموتور" },
-    { code: "LAB", nameEn: "Daily Labor & Subcontractors", nameAr: "أجور العمال والمياومين" },
-    { code: "MAT", nameEn: "Raw Materials Procurement", nameAr: "شراء المواد الأولية" },
-    { code: "MNT", nameEn: "Machine Maintenance & Tooling", nameAr: "صيانة الآلات والمعدات" },
-    { code: "UTIL", nameEn: "Utilities, Water & Electricity", nameAr: "الكهرباء والمياه" },
-  ] as const;
+  const expenseCategories = DEFAULT_EXPENSE_CATEGORIES;
 
   for (const item of expenseCategories) {
     await prisma.category.upsert({
@@ -134,8 +118,20 @@ async function main() {
     });
   }
 
+  const incomeCategories = DEFAULT_INCOME_CATEGORIES;
+
+  for (const item of incomeCategories) {
+    await prisma.category.upsert({
+      where: { type_code: { type: "INCOME", code: item.code } },
+      update: { nameEn: item.nameEn, nameAr: item.nameAr, isSystem: true },
+      create: { ...item, type: "INCOME", isSystem: true },
+    });
+  }
+
   console.log(`  units   ${units.length} units of measure`);
-  console.log(`  cats    ${inventoryCategories.length} inventory + ${expenseCategories.length} expense`);
+  console.log(
+    `  cats    ${inventoryCategories.length} inventory + ${expenseCategories.length} expense + ${incomeCategories.length} income`
+  );
 }
 
 main()

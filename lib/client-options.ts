@@ -22,9 +22,3 @@ export function leadSourceLabel(source: LeadSource) {
 export function clientStatusLabel(status: ClientStatus) {
   return CLIENT_STATUSES.find((item) => item.value === status)?.label ?? status;
 }
-
-export const DEMO_ADMIN = {
-  email: "admin@edenatelier.com",
-  password: "Admin123!",
-  name: "Eden Atelier Admin",
-} as const;

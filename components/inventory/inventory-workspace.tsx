@@ -12,14 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { InlineFormPanel } from "@/components/ui/inline-form-panel";
 import { FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Form } from "@/components/ui/form";
 import { FormField, FormGrid } from "@/components/ui/form-grid";
@@ -71,7 +64,7 @@ export type InventoryRow = {
   minimumThreshold: number;
 };
 
-function ItemDialog({
+function ItemPanel({
   open,
   onOpenChange,
   item,
@@ -137,15 +130,34 @@ function ItemDialog({
   const missingLookups = categories.length === 0 || units.length === 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            {item ? t("inventory.editItem") : t("inventory.addItem")}
-          </DialogTitle>
-          <DialogDescription>{t("inventory.subtitle")}</DialogDescription>
-        </DialogHeader>
-        <Form form={form} onSubmit={onSubmit} className="space-y-4">
+    <InlineFormPanel
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={item ? t("inventory.editItem") : t("inventory.addItem")}
+      description={t("inventory.subtitle")}
+      footer={
+        <>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="inventory-item-form"
+            disabled={form.formState.isSubmitting || missingLookups}
+          >
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin" />
+                {t("common.saving")}
+              </>
+            ) : (
+              t("inventory.save")
+            )}
+          </Button>
+        </>
+      }
+    >
+      <Form id="inventory-item-form" form={form} onSubmit={onSubmit} className="space-y-4">
           <FieldGroup>
             <FormGrid>
               <FormField data-invalid={!!form.formState.errors.sku}>
@@ -157,12 +169,12 @@ function ItemDialog({
                 />
                 <FieldError errors={[form.formState.errors.sku]} />
               </FormField>
-              <FormField span="wide" data-invalid={!!form.formState.errors.name}>
+              <FormField span="medium" data-invalid={!!form.formState.errors.name}>
                 <FieldLabel htmlFor="inv-name">{t("inventory.name")}</FieldLabel>
                 <Input id="inv-name" {...form.register("name")} />
                 <FieldError errors={[form.formState.errors.name]} />
               </FormField>
-              <FormField data-invalid={!!form.formState.errors.categoryId}>
+              <FormField span="medium" data-invalid={!!form.formState.errors.categoryId}>
                 <FieldLabel>{t("inventory.category")}</FieldLabel>
                 <Controller
                   control={form.control}
@@ -196,7 +208,7 @@ function ItemDialog({
                 />
                 <FieldError errors={[form.formState.errors.categoryId]} />
               </FormField>
-              <FormField data-invalid={!!form.formState.errors.unitId}>
+              <FormField span="medium" data-invalid={!!form.formState.errors.unitId}>
                 <FieldLabel>{t("inventory.unit")}</FieldLabel>
                 <Controller
                   control={form.control}
@@ -230,7 +242,7 @@ function ItemDialog({
                 />
                 <FieldError errors={[form.formState.errors.unitId]} />
               </FormField>
-              <FormField data-invalid={!!form.formState.errors.supplierId}>
+              <FormField span="medium" data-invalid={!!form.formState.errors.supplierId}>
                 <FieldLabel>{t("inventory.supplier")}</FieldLabel>
                 <Controller
                   control={form.control}
@@ -324,27 +336,8 @@ function ItemDialog({
               {serverError}
             </p>
           ) : null}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              type="submit"
-              disabled={form.formState.isSubmitting || missingLookups}
-            >
-              {form.formState.isSubmitting ? (
-                <>
-                  <Loader2 className="animate-spin" />
-                  {t("common.saving")}
-                </>
-              ) : (
-                t("inventory.save")
-              )}
-            </Button>
-          </DialogFooter>
         </Form>
-      </DialogContent>
-    </Dialog>
+    </InlineFormPanel>
   );
 }
 
@@ -387,6 +380,15 @@ export function InventoryWorkspace({
           {t("inventory.addItem")}
         </Button>
       </div>
+
+      <ItemPanel
+        open={open}
+        onOpenChange={setOpen}
+        item={selected}
+        categories={categories}
+        units={units}
+        suppliers={suppliers}
+      />
 
       {deleteError ? (
         <p className="text-sm text-destructive" role="alert">
@@ -479,14 +481,6 @@ export function InventoryWorkspace({
         </div>
       )}
 
-      <ItemDialog
-        open={open}
-        onOpenChange={setOpen}
-        item={selected}
-        categories={categories}
-        units={units}
-        suppliers={suppliers}
-      />
       <ConfirmDeleteDialog
         open={Boolean(pendingDelete)}
         onOpenChange={(openDialog) => {

@@ -23,6 +23,8 @@ const ROLE_RANK: Record<Role, number> = {
 export type HubTabId =
   | "overview"
   | "survey"
+  | "engineering"
+  | "boq"
   | "quotations"
   | "contracts"
   | "variations"
@@ -54,6 +56,8 @@ export const NAV_ACCESS: Record<string, Role[]> = {
 export const HUB_TAB_ACCESS: Record<HubTabId, Role[]> = {
   overview: ALL_ROLES,
   survey: ["SUPER_ADMIN", "SALES", "DESIGNER"],
+  engineering: ["SUPER_ADMIN", "SALES", "DESIGNER"],
+  boq: ["SUPER_ADMIN", "SALES", "ACCOUNTANT", "DESIGNER"],
   quotations: ["SUPER_ADMIN", "SALES"],
   contracts: ["SUPER_ADMIN", "SALES"],
   variations: ["SUPER_ADMIN", "SALES", "ACCOUNTANT"],

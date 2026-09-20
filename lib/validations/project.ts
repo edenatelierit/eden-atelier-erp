@@ -24,7 +24,7 @@ export const projectFormSchema = z.object({
   preferredStone: z.string().trim().optional(),
   preferredColors: z.string().trim().optional(),
   preferredHardware: z.string().trim().optional(),
-  areasIncluded: z.array(z.enum(areaValues)).default([]),
+  areasIncluded: z.array(z.enum(areaValues)),
 });
 
 export type ProjectFormValues = z.infer<typeof projectFormSchema>;

@@ -11,20 +11,14 @@ import {
   deleteUnit,
   saveCategory,
   saveUnit,
+  seedMasterDefaults,
 } from "@/actions/category";
 import { useI18n } from "@/components/locale-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { InlineFormPanel } from "@/components/ui/inline-form-panel";
 import { FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Form } from "@/components/ui/form";
 import { FormField, FormGrid } from "@/components/ui/form-grid";
@@ -51,7 +45,7 @@ import {
   type UnitOption,
 } from "@/lib/validations/category";
 
-function CategoryDialog({
+function CategoryPanel({
   open,
   onOpenChange,
   type,
@@ -98,23 +92,42 @@ function CategoryDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {item ? t("admin.editCategory") : t("admin.addCategory")}
-          </DialogTitle>
-          <DialogDescription>{t("admin.categoryHint")}</DialogDescription>
-        </DialogHeader>
-        <Form form={form} onSubmit={onSubmit} className="space-y-4">
+    <InlineFormPanel
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={item ? t("admin.editCategory") : t("admin.addCategory")}
+      description={t("admin.categoryHint")}
+      footer={
+        <>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="category-form"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin" />
+                {t("common.saving")}
+              </>
+            ) : (
+              t("common.save")
+            )}
+          </Button>
+        </>
+      }
+    >
+      <Form id="category-form" form={form} onSubmit={onSubmit} className="space-y-4">
           <FieldGroup>
             <FormGrid>
-              <FormField span="wide" data-invalid={!!form.formState.errors.nameEn}>
+              <FormField span="medium" data-invalid={!!form.formState.errors.nameEn}>
                 <FieldLabel htmlFor="cat-en">{t("admin.nameEn")}</FieldLabel>
                 <Input id="cat-en" {...form.register("nameEn")} />
                 <FieldError errors={[form.formState.errors.nameEn]} />
               </FormField>
-              <FormField span="wide" data-invalid={!!form.formState.errors.nameAr}>
+              <FormField span="medium" data-invalid={!!form.formState.errors.nameAr}>
                 <FieldLabel htmlFor="cat-ar">{t("admin.nameAr")}</FieldLabel>
                 <Input id="cat-ar" dir="rtl" {...form.register("nameAr")} />
                 <FieldError errors={[form.formState.errors.nameAr]} />
@@ -131,28 +144,12 @@ function CategoryDialog({
               {serverError}
             </p>
           ) : null}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? (
-                <>
-                  <Loader2 className="animate-spin" />
-                  {t("common.saving")}
-                </>
-              ) : (
-                t("common.save")
-              )}
-            </Button>
-          </DialogFooter>
         </Form>
-      </DialogContent>
-    </Dialog>
+    </InlineFormPanel>
   );
 }
 
-function UnitDialog({
+function UnitPanel({
   open,
   onOpenChange,
   item,
@@ -196,23 +193,42 @@ function UnitDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {item ? t("admin.editUnit") : t("admin.addUnit")}
-          </DialogTitle>
-          <DialogDescription>{t("admin.unitHint")}</DialogDescription>
-        </DialogHeader>
-        <Form form={form} onSubmit={onSubmit} className="space-y-4">
+    <InlineFormPanel
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={item ? t("admin.editUnit") : t("admin.addUnit")}
+      description={t("admin.unitHint")}
+      footer={
+        <>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="unit-form"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin" />
+                {t("common.saving")}
+              </>
+            ) : (
+              t("common.save")
+            )}
+          </Button>
+        </>
+      }
+    >
+      <Form id="unit-form" form={form} onSubmit={onSubmit} className="space-y-4">
           <FieldGroup>
             <FormGrid>
-              <FormField span="wide" data-invalid={!!form.formState.errors.nameEn}>
+              <FormField span="medium" data-invalid={!!form.formState.errors.nameEn}>
                 <FieldLabel htmlFor="unit-en">{t("admin.nameEn")}</FieldLabel>
                 <Input id="unit-en" {...form.register("nameEn")} />
                 <FieldError errors={[form.formState.errors.nameEn]} />
               </FormField>
-              <FormField span="wide" data-invalid={!!form.formState.errors.nameAr}>
+              <FormField span="medium" data-invalid={!!form.formState.errors.nameAr}>
                 <FieldLabel htmlFor="unit-ar">{t("admin.nameAr")}</FieldLabel>
                 <Input id="unit-ar" dir="rtl" {...form.register("nameAr")} />
                 <FieldError errors={[form.formState.errors.nameAr]} />
@@ -229,24 +245,8 @@ function UnitDialog({
               {serverError}
             </p>
           ) : null}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? (
-                <>
-                  <Loader2 className="animate-spin" />
-                  {t("common.saving")}
-                </>
-              ) : (
-                t("common.save")
-              )}
-            </Button>
-          </DialogFooter>
         </Form>
-      </DialogContent>
-    </Dialog>
+    </InlineFormPanel>
   );
 }
 
@@ -399,10 +399,12 @@ function UnitTable({
 export function CategorySettings({
   inventoryCategories,
   expenseCategories,
+  incomeCategories,
   units,
 }: {
   inventoryCategories: CategoryOption[];
   expenseCategories: CategoryOption[];
+  incomeCategories: CategoryOption[];
   units: UnitOption[];
 }) {
   const { t } = useI18n();
@@ -416,6 +418,7 @@ export function CategorySettings({
   const [pendingUnit, setPendingUnit] = useState<UnitOption | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [seeding, setSeeding] = useState(false);
 
   function addCategory(type: CategoryTypeValue) {
     setCategoryType(type);
@@ -435,6 +438,25 @@ export function CategorySettings({
         <p className="max-w-2xl text-sm text-muted-foreground">
           {t("admin.categoriesSubtitle")}
         </p>
+        <Button
+          variant="outline"
+          className="mt-2"
+          disabled={seeding}
+          onClick={async () => {
+            setDeleteError(null);
+            setSeeding(true);
+            const result = await seedMasterDefaults();
+            setSeeding(false);
+            if (result.error) {
+              setDeleteError(result.error);
+              return;
+            }
+            router.refresh();
+          }}
+        >
+          {seeding ? <Loader2 className="animate-spin" /> : null}
+          {t("admin.loadDefaults")}
+        </Button>
       </div>
 
       {deleteError ? (
@@ -443,10 +465,19 @@ export function CategorySettings({
         </p>
       ) : null}
 
+      <CategoryPanel
+        open={categoryOpen}
+        onOpenChange={setCategoryOpen}
+        type={categoryType}
+        item={selectedCategory}
+      />
+      <UnitPanel open={unitOpen} onOpenChange={setUnitOpen} item={selectedUnit} />
+
       <Tabs defaultValue="inventory" className="gap-5">
         <TabsList variant="line" className="h-auto justify-start">
           <TabsTrigger value="inventory">{t("admin.inventoryCategories")}</TabsTrigger>
           <TabsTrigger value="expense">{t("admin.expenseCategories")}</TabsTrigger>
+          <TabsTrigger value="income">{t("admin.incomeCategories")}</TabsTrigger>
           <TabsTrigger value="units">{t("admin.unitsOfMeasure")}</TabsTrigger>
         </TabsList>
 
@@ -492,6 +523,27 @@ export function CategorySettings({
           />
         </TabsContent>
 
+        <TabsContent value="income" className="space-y-3">
+          <div className="flex justify-end">
+            <Button onClick={() => addCategory("INCOME")}>
+              <Plus />
+              {t("admin.addCategory")}
+            </Button>
+          </div>
+          <CategoryTable
+            items={incomeCategories}
+            onEdit={(item) => {
+              setCategoryType("INCOME");
+              setSelectedCategory(item);
+              setCategoryOpen(true);
+            }}
+            onDelete={(item) => {
+              setDeleteError(null);
+              setPendingCategory(item);
+            }}
+          />
+        </TabsContent>
+
         <TabsContent value="units" className="space-y-3">
           <div className="flex justify-end">
             <Button
@@ -518,13 +570,6 @@ export function CategorySettings({
         </TabsContent>
       </Tabs>
 
-      <CategoryDialog
-        open={categoryOpen}
-        onOpenChange={setCategoryOpen}
-        type={categoryType}
-        item={selectedCategory}
-      />
-      <UnitDialog open={unitOpen} onOpenChange={setUnitOpen} item={selectedUnit} />
       <ConfirmDeleteDialog
         open={Boolean(pendingCategory || pendingUnit)}
         onOpenChange={(openDialog) => {

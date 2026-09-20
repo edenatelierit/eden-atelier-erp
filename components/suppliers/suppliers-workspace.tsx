@@ -12,14 +12,7 @@ import { TableSearch } from "@/components/table-search";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { InlineFormPanel } from "@/components/ui/inline-form-panel";
 import { FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Form } from "@/components/ui/form";
 import { FormField, FormGrid } from "@/components/ui/form-grid";
@@ -58,7 +51,7 @@ export type SupplierRecord = {
   paymentTerms: string | null;
 };
 
-function SupplierDialog({
+function SupplierPanel({
   open,
   onOpenChange,
   supplier,
@@ -106,23 +99,44 @@ function SupplierDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? t("suppliersPage.editSupplier") : t("suppliersPage.addSupplier")}
-          </DialogTitle>
-          <DialogDescription>{t("suppliersPage.subtitle")}</DialogDescription>
-        </DialogHeader>
-        <Form form={form} onSubmit={onSubmit} className="space-y-4">
+    <InlineFormPanel
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={
+        isEditing ? t("suppliersPage.editSupplier") : t("suppliersPage.addSupplier")
+      }
+      description={t("suppliersPage.subtitle")}
+      footer={
+        <>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="supplier-form"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin" />
+                {t("common.saving")}
+              </>
+            ) : (
+              t("suppliersPage.save")
+            )}
+          </Button>
+        </>
+      }
+    >
+      <Form id="supplier-form" form={form} onSubmit={onSubmit} className="space-y-4">
           <FieldGroup>
             <FormGrid>
-              <FormField span="wide" data-invalid={!!form.formState.errors.name}>
+              <FormField span="medium" data-invalid={!!form.formState.errors.name}>
                 <FieldLabel htmlFor="sup-name">{t("suppliersPage.name")}</FieldLabel>
                 <Input id="sup-name" {...form.register("name")} />
                 <FieldError errors={[form.formState.errors.name]} />
               </FormField>
-              <FormField data-invalid={!!form.formState.errors.category}>
+              <FormField span="medium" data-invalid={!!form.formState.errors.category}>
                 <FieldLabel>{t("suppliersPage.category")}</FieldLabel>
                 <Controller
                   control={form.control}
@@ -151,17 +165,17 @@ function SupplierDialog({
                 />
                 <FieldError errors={[form.formState.errors.category]} />
               </FormField>
-              <FormField>
+              <FormField span="medium">
                 <FieldLabel htmlFor="sup-contact">
                   {t("suppliersPage.contactPerson")}
                 </FieldLabel>
                 <Input id="sup-contact" {...form.register("contactPerson")} />
               </FormField>
-              <FormField>
+              <FormField span="medium">
                 <FieldLabel htmlFor="sup-phone">{t("suppliersPage.phone")}</FieldLabel>
-                <Input id="sup-phone" {...form.register("phone")} />
+                <Input id="sup-phone" type="tel" {...form.register("phone")} />
               </FormField>
-              <FormField data-invalid={!!form.formState.errors.email}>
+              <FormField span="medium" data-invalid={!!form.formState.errors.email}>
                 <FieldLabel htmlFor="sup-email">{t("suppliersPage.email")}</FieldLabel>
                 <Input id="sup-email" type="email" {...form.register("email")} />
                 <FieldError errors={[form.formState.errors.email]} />
@@ -179,24 +193,8 @@ function SupplierDialog({
               {serverError}
             </p>
           ) : null}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? (
-                <>
-                  <Loader2 className="animate-spin" />
-                  {t("common.saving")}
-                </>
-              ) : (
-                t("suppliersPage.save")
-              )}
-            </Button>
-          </DialogFooter>
         </Form>
-      </DialogContent>
-    </Dialog>
+    </InlineFormPanel>
   );
 }
 
@@ -235,6 +233,8 @@ export function SuppliersWorkspace({
           {t("suppliersPage.addSupplier")}
         </Button>
       </div>
+
+      <SupplierPanel open={open} onOpenChange={setOpen} supplier={selected} />
 
       <Suspense
         fallback={<div className="h-8 max-w-sm rounded-lg border border-input bg-background" />}
@@ -320,7 +320,6 @@ export function SuppliersWorkspace({
         </div>
       )}
 
-      <SupplierDialog open={open} onOpenChange={setOpen} supplier={selected} />
       <ConfirmDeleteDialog
         open={Boolean(pendingDelete)}
         onOpenChange={(openDialog) => {

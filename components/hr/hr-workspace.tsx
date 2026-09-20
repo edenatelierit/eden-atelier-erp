@@ -16,13 +16,7 @@ import { useI18n } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { InlineFormPanel } from "@/components/ui/inline-form-panel";
 import { FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Form } from "@/components/ui/form";
 import { FormField, FormGrid } from "@/components/ui/form-grid";
@@ -78,7 +72,7 @@ export type TimesheetRow = {
 
 export type HrProjectOption = { id: string; projectNumber: string };
 
-function EmployeeDialog({
+function EmployeePanel({
   open,
   onOpenChange,
   employee,
@@ -124,17 +118,36 @@ function EmployeeDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {employee ? t("hr.editEmployee") : t("hr.addEmployee")}
-          </DialogTitle>
-        </DialogHeader>
-        <Form form={form} onSubmit={onSubmit} className="space-y-4">
+    <InlineFormPanel
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={employee ? t("hr.editEmployee") : t("hr.addEmployee")}
+      footer={
+        <>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="employee-form"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin" />
+                {t("common.saving")}
+              </>
+            ) : (
+              t("hr.saveEmployee")
+            )}
+          </Button>
+        </>
+      }
+    >
+      <Form id="employee-form" form={form} onSubmit={onSubmit} className="space-y-4">
           <FieldGroup>
             <FormGrid>
-              <FormField span="wide" data-invalid={!!form.formState.errors.name}>
+              <FormField span="medium" data-invalid={!!form.formState.errors.name}>
                 <FieldLabel htmlFor="emp-name">{t("hr.name")}</FieldLabel>
                 <Input id="emp-name" {...form.register("name")} />
                 <FieldError errors={[form.formState.errors.name]} />
@@ -144,9 +157,9 @@ function EmployeeDialog({
                 <Input id="emp-position" {...form.register("position")} />
                 <FieldError errors={[form.formState.errors.position]} />
               </FormField>
-              <FormField data-invalid={!!form.formState.errors.phone}>
+              <FormField span="medium" data-invalid={!!form.formState.errors.phone}>
                 <FieldLabel htmlFor="emp-phone">{t("hr.phone")}</FieldLabel>
-                <Input id="emp-phone" {...form.register("phone")} />
+                <Input id="emp-phone" type="tel" {...form.register("phone")} />
                 <FieldError errors={[form.formState.errors.phone]} />
               </FormField>
               <FormField data-invalid={!!form.formState.errors.dailyRate}>
@@ -195,28 +208,12 @@ function EmployeeDialog({
               {serverError}
             </p>
           ) : null}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? (
-                <>
-                  <Loader2 className="animate-spin" />
-                  {t("common.saving")}
-                </>
-              ) : (
-                t("hr.saveEmployee")
-              )}
-            </Button>
-          </DialogFooter>
         </Form>
-      </DialogContent>
-    </Dialog>
+    </InlineFormPanel>
   );
 }
 
-function TimesheetDialog({
+function TimesheetPanel({
   open,
   onOpenChange,
   employees,
@@ -269,17 +266,36 @@ function TimesheetDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {timesheet ? t("hr.editTimesheet") : t("hr.addTimesheet")}
-          </DialogTitle>
-        </DialogHeader>
-        <Form form={form} onSubmit={onSubmit} className="space-y-4">
+    <InlineFormPanel
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={timesheet ? t("hr.editTimesheet") : t("hr.addTimesheet")}
+      footer={
+        <>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="timesheet-form"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin" />
+                {t("common.saving")}
+              </>
+            ) : (
+              t("hr.saveTimesheet")
+            )}
+          </Button>
+        </>
+      }
+    >
+      <Form id="timesheet-form" form={form} onSubmit={onSubmit} className="space-y-4">
           <FieldGroup>
             <FormGrid>
-              <FormField span="wide" data-invalid={!!form.formState.errors.employeeId}>
+              <FormField span="medium" data-invalid={!!form.formState.errors.employeeId}>
                 <FieldLabel>{t("hr.employee")}</FieldLabel>
                 <Controller
                   control={form.control}
@@ -326,7 +342,7 @@ function TimesheetDialog({
                 />
                 <FieldError errors={[form.formState.errors.hoursWorked]} />
               </FormField>
-              <FormField>
+              <FormField span="medium">
                 <FieldLabel>{t("hr.project")}</FieldLabel>
                 <Controller
                   control={form.control}
@@ -369,24 +385,8 @@ function TimesheetDialog({
               {serverError}
             </p>
           ) : null}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? (
-                <>
-                  <Loader2 className="animate-spin" />
-                  {t("common.saving")}
-                </>
-              ) : (
-                t("hr.saveTimesheet")
-              )}
-            </Button>
-          </DialogFooter>
         </Form>
-      </DialogContent>
-    </Dialog>
+    </InlineFormPanel>
   );
 }
 
@@ -424,6 +424,19 @@ export function HrWorkspace({
           {error}
         </p>
       ) : null}
+
+      <EmployeePanel
+        open={employeeOpen}
+        onOpenChange={setEmployeeOpen}
+        employee={selectedEmployee}
+      />
+      <TimesheetPanel
+        open={timesheetOpen}
+        onOpenChange={setTimesheetOpen}
+        employees={employees}
+        projects={projects}
+        timesheet={selectedTimesheet}
+      />
 
       <section className="space-y-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -549,18 +562,6 @@ export function HrWorkspace({
         )}
       </section>
 
-      <EmployeeDialog
-        open={employeeOpen}
-        onOpenChange={setEmployeeOpen}
-        employee={selectedEmployee}
-      />
-      <TimesheetDialog
-        open={timesheetOpen}
-        onOpenChange={setTimesheetOpen}
-        employees={employees}
-        projects={projects}
-        timesheet={selectedTimesheet}
-      />
       <ConfirmDeleteDialog
         open={Boolean(pendingEmployee)}
         onOpenChange={(openDialog) => {

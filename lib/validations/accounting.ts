@@ -50,14 +50,20 @@ export const transactionFormSchema = z
     projectId: z.string().optional(),
   })
   .superRefine((value, ctx) => {
-    if (value.type === "EXPENSE" && !value.categoryId?.trim()) {
+    if (
+      (value.type === "EXPENSE" || value.type === "INCOME") &&
+      !value.categoryId?.trim()
+    ) {
       ctx.addIssue({
         code: "custom",
         path: ["categoryId"],
-        message: "Select an expense category.",
+        message:
+          value.type === "INCOME"
+            ? "Select an income category."
+            : "Select an expense category.",
       });
     }
-    if (value.type !== "EXPENSE" && !(value.category ?? "").trim()) {
+    if (value.type === "TRANSFER" && !(value.category ?? "").trim()) {
       ctx.addIssue({
         code: "custom",
         path: ["category"],

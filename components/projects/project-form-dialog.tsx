@@ -13,14 +13,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { InlineFormPanel } from "@/components/ui/inline-form-panel";
 import {
   Field,
   FieldError,
@@ -76,7 +69,7 @@ const emptyValues: ProjectFormValues = {
   areasIncluded: [],
 };
 
-export function ProjectFormDialog({
+export function ProjectFormPanel({
   open,
   onOpenChange,
   clients,
@@ -134,16 +127,40 @@ export function ProjectFormDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? t("projectForm.editTitle") : t("projectForm.title")}
-          </DialogTitle>
-          <DialogDescription>{t("projectForm.description")}</DialogDescription>
-        </DialogHeader>
-
-        <Form form={form} onSubmit={onSubmit} className="space-y-6">
+    <InlineFormPanel
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={isEditing ? t("projectForm.editTitle") : t("projectForm.title")}
+      description={t("projectForm.description")}
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            {t("projectForm.cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="project-form"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin" />
+                {t("projectForm.saving")}
+              </>
+            ) : isEditing ? (
+              t("projectForm.saveChanges")
+            ) : (
+              t("projectForm.create")
+            )}
+          </Button>
+        </>
+      }
+    >
+      <Form id="project-form" form={form} onSubmit={onSubmit} className="space-y-6">
           <FieldGroup>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field
@@ -327,27 +344,10 @@ export function ProjectFormDialog({
             </p>
           ) : null}
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              {t("projectForm.cancel")}
-            </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? (
-                <>
-                  <Loader2 className="animate-spin" />
-                  {t("projectForm.saving")}
-                </>
-              ) : (
-                isEditing ? t("projectForm.saveChanges") : t("projectForm.create")
-              )}
-            </Button>
-          </DialogFooter>
-        </Form>
-      </DialogContent>
-    </Dialog>
+      </Form>
+    </InlineFormPanel>
   );
 }
+
+/** @deprecated Use ProjectFormPanel */
+export const ProjectFormDialog = ProjectFormPanel;

@@ -12,14 +12,7 @@ import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { InlineFormPanel } from "@/components/ui/inline-form-panel";
 import { FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Form } from "@/components/ui/form";
 import { FormField, FormGrid } from "@/components/ui/form-grid";
@@ -50,7 +43,7 @@ function lineTotal(qty: string, unitPrice: string) {
   return (quantity * price).toFixed(2);
 }
 
-function PurchaseOrderDialog({
+function PurchaseOrderPanel({
   projectId,
   open,
   onOpenChange,
@@ -93,15 +86,35 @@ function PurchaseOrderDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? t("procurement.editLine") : t("procurement.addLine")}
-          </DialogTitle>
-          <DialogDescription>{t("procurement.purchaseOrdersHint")}</DialogDescription>
-        </DialogHeader>
-        <Form form={form} onSubmit={onSubmit} className="space-y-4">
+    <InlineFormPanel
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={isEditing ? t("procurement.editLine") : t("procurement.addLine")}
+      description={t("procurement.purchaseOrdersHint")}
+      className="mx-4 mb-4"
+      footer={
+        <>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="purchase-order-form"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin" />
+                {t("common.saving")}
+              </>
+            ) : (
+              t("procurement.saveOrders")
+            )}
+          </Button>
+        </>
+      }
+    >
+      <Form id="purchase-order-form" form={form} onSubmit={onSubmit} className="space-y-4">
           <FieldGroup>
             <FormGrid>
               <FormField data-invalid={!!form.formState.errors.item}>
@@ -109,7 +122,7 @@ function PurchaseOrderDialog({
                 <Input id="po-item" {...form.register("item")} />
                 <FieldError errors={[form.formState.errors.item]} />
               </FormField>
-              <FormField data-invalid={!!form.formState.errors.description}>
+              <FormField span="wide" data-invalid={!!form.formState.errors.description}>
                 <FieldLabel htmlFor="po-description">
                   {t("procurement.descriptionCol")}
                 </FieldLabel>
@@ -159,7 +172,7 @@ function PurchaseOrderDialog({
                 <Input id="po-date" type="date" {...form.register("requiredDate")} />
                 <FieldError errors={[form.formState.errors.requiredDate]} />
               </FormField>
-              <FormField data-invalid={!!form.formState.errors.deliveryLocation}>
+              <FormField span="wide" data-invalid={!!form.formState.errors.deliveryLocation}>
                 <FieldLabel htmlFor="po-location">
                   {t("procurement.deliveryLocation")}
                 </FieldLabel>
@@ -177,24 +190,8 @@ function PurchaseOrderDialog({
               {serverError}
             </p>
           ) : null}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? (
-                <>
-                  <Loader2 className="animate-spin" />
-                  {t("common.saving")}
-                </>
-              ) : (
-                t("procurement.saveOrders")
-              )}
-            </Button>
-          </DialogFooter>
         </Form>
-      </DialogContent>
-    </Dialog>
+    </InlineFormPanel>
   );
 }
 
@@ -235,6 +232,13 @@ export function PurchaseOrdersCard({
         </Button>
       }
     >
+      <PurchaseOrderPanel
+        projectId={projectId}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        order={selected}
+        suppliers={suppliers}
+      />
       <CardContent className="pt-4">
         {deleteError ? (
           <p className="mb-3 text-sm text-destructive" role="alert">
@@ -293,13 +297,6 @@ export function PurchaseOrdersCard({
           </div>
         )}
       </CardContent>
-      <PurchaseOrderDialog
-        projectId={projectId}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        order={selected}
-        suppliers={suppliers}
-      />
       <ConfirmDeleteDialog
         open={Boolean(pendingDelete)}
         onOpenChange={(open) => {

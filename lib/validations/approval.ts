@@ -34,13 +34,16 @@ function commentsRequiredWhenNotApproved(
 
 export const materialApprovalSchema = z
   .object({
+    id: z.string().optional(),
     itemLocation: z.string().trim().min(2, "Item location is required."),
     material: z.string().trim().min(2, "Material is required."),
     supplierId: z.string().trim().min(1, "Select a supplier."),
     productCode: z.string().trim().min(1, "Product code is required."),
-    thickness: z.string().trim().min(1, "Thickness is required."),
-    finish: z.string().trim().min(1, "Finish is required."),
-    sampleAttached: z.boolean(),
+    thickness: z.string().trim().optional(),
+    finish: z.string().trim().optional(),
+    hasPhysicalSample: z.boolean(),
+    hasPhotograph: z.boolean(),
+    hasTechnicalData: z.boolean(),
     status: z.enum(materialStatusValues),
     comments: z.string().optional(),
   })
@@ -48,9 +51,11 @@ export const materialApprovalSchema = z
 
 export const drawingApprovalSchema = z
   .object({
-    drawingNo: z.string().trim().min(1, "Drawing number is required."),
+    id: z.string().optional(),
+    drawingNumber: z.string().trim().min(1, "Drawing number is required."),
     title: z.string().trim().min(2, "Title is required."),
     revision: z.string().trim().min(1, "Revision is required."),
+    fileUrl: z.string().trim().optional(),
     status: z.enum(drawingStatusValues),
     comments: z.string().optional(),
   })
@@ -60,21 +65,26 @@ export type MaterialApprovalValues = z.infer<typeof materialApprovalSchema>;
 export type DrawingApprovalValues = z.infer<typeof drawingApprovalSchema>;
 
 export const emptyMaterialApprovalValues: MaterialApprovalValues = {
+  id: "",
   itemLocation: "",
   material: "",
   supplierId: "",
   productCode: "",
   thickness: "",
   finish: "",
-  sampleAttached: false,
+  hasPhysicalSample: false,
+  hasPhotograph: false,
+  hasTechnicalData: false,
   status: "APPROVED",
   comments: "",
 };
 
 export const emptyDrawingApprovalValues: DrawingApprovalValues = {
-  drawingNo: "",
+  id: "",
+  drawingNumber: "",
   title: "",
   revision: "",
+  fileUrl: "",
   status: "APPROVED",
   comments: "",
 };

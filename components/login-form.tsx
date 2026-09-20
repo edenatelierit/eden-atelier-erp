@@ -18,7 +18,6 @@ import {
 import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/components/locale-provider";
-import { DEMO_ADMIN } from "@/lib/client-options";
 import { withLocale } from "@/i18n/config";
 
 const loginSchema = z.object({
@@ -37,8 +36,8 @@ export function LoginForm() {
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: DEMO_ADMIN.email,
-      password: DEMO_ADMIN.password,
+      email: "",
+      password: "",
     },
   });
 

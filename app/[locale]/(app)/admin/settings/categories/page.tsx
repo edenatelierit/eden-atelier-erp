@@ -13,7 +13,7 @@ function toCategory(item: {
   id: string;
   nameEn: string;
   nameAr: string;
-  type: "INVENTORY" | "EXPENSE" | "LEAD_SOURCE";
+  type: "INVENTORY" | "EXPENSE" | "INCOME" | "LEAD_SOURCE";
   code: string;
   isSystem: boolean;
 }) {
@@ -32,6 +32,7 @@ export default async function CategorySettingsPage() {
 
   let inventoryCategories: ReturnType<typeof toCategory>[] = [];
   let expenseCategories: ReturnType<typeof toCategory>[] = [];
+  let incomeCategories: ReturnType<typeof toCategory>[] = [];
   let units: {
     id: string;
     nameEn: string;
@@ -41,7 +42,7 @@ export default async function CategorySettingsPage() {
   }[] = [];
 
   try {
-    const [inventory, expense, unitRows] = await Promise.all([
+    const [inventory, expense, income, unitRows] = await Promise.all([
       prisma.category.findMany({
         where: { type: "INVENTORY" },
         orderBy: [{ code: "asc" }, { nameEn: "asc" }],
@@ -50,12 +51,17 @@ export default async function CategorySettingsPage() {
         where: { type: "EXPENSE" },
         orderBy: [{ code: "asc" }, { nameEn: "asc" }],
       }),
+      prisma.category.findMany({
+        where: { type: "INCOME" },
+        orderBy: [{ code: "asc" }, { nameEn: "asc" }],
+      }),
       prisma.unitOfMeasure.findMany({
         orderBy: { nameEn: "asc" },
       }),
     ]);
     inventoryCategories = inventory.map(toCategory);
     expenseCategories = expense.map(toCategory);
+    incomeCategories = income.map(toCategory);
     units = unitRows.map((item) => ({
       id: item.id,
       nameEn: item.nameEn,
@@ -71,6 +77,7 @@ export default async function CategorySettingsPage() {
     <CategorySettings
       inventoryCategories={inventoryCategories}
       expenseCategories={expenseCategories}
+      incomeCategories={incomeCategories}
       units={units}
     />
   );

@@ -6,6 +6,7 @@ import {
   Headset,
   UserPlus,
 } from "lucide-react";
+import Link from "next/link";
 
 import { useI18n } from "@/components/locale-provider";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/card";
 import { canAccessPath } from "@/lib/rbac";
 import { withLocale } from "@/i18n/config";
+import { formatMoney } from "@/lib/money";
 
 export type DashboardMetrics = {
   activeProjects: number;
@@ -32,6 +34,11 @@ export type DashboardMetrics = {
     projectNumber: string;
     dateReported: string;
   }[];
+  cashIn: number;
+  cashOut: number;
+  receivables: number;
+  payables: number;
+  lowStock: number;
 };
 
 const PIPELINE_ORDER: ProjectStatus[] = [
@@ -55,6 +62,8 @@ export function DashboardView({
   const { locale, t } = useI18n();
   const canCrm = canAccessPath(role, "/crm");
   const canProjects = canAccessPath(role, "/projects");
+  const canFinance = canAccessPath(role, "/finance");
+  const canInventory = canAccessPath(role, "/inventory");
 
   const cards = [
     {
@@ -124,13 +133,76 @@ export function DashboardView({
           );
 
           return card.href ? (
-            <a
+            <Link
               key={card.key}
               href={withLocale(locale, card.href)}
               className="outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {content}
-            </a>
+            </Link>
+          ) : (
+            <div key={card.key}>{content}</div>
+          );
+        })}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          {
+            key: "in",
+            label: t("dashboard.cashIn"),
+            hint: t("dashboard.cashInHint"),
+            value: formatMoney(metrics.cashIn, locale),
+            href: canFinance ? "/finance" : null,
+          },
+          {
+            key: "out",
+            label: t("dashboard.cashOut"),
+            hint: t("dashboard.cashOutHint"),
+            value: formatMoney(metrics.cashOut, locale),
+            href: canFinance ? "/finance" : null,
+          },
+          {
+            key: "recv",
+            label: t("dashboard.receivables"),
+            hint: t("dashboard.receivablesHint"),
+            value: formatMoney(metrics.receivables, locale),
+            href: canFinance ? "/finance" : null,
+          },
+          {
+            key: "pay",
+            label: t("dashboard.payables"),
+            hint: t("dashboard.payablesHint"),
+            value: formatMoney(metrics.payables, locale),
+            href: canInventory ? "/inventory" : canFinance ? "/finance" : null,
+          },
+        ].map((card) => {
+          const content = (
+            <Card className="h-full">
+              <CardHeader>
+                <CardDescription>{card.label}</CardDescription>
+                <CardTitle className="font-heading text-2xl tabular-nums tracking-tight">
+                  {card.value}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">{card.hint}</p>
+                {card.key === "pay" && metrics.lowStock > 0 ? (
+                  <p className="mt-2 text-sm text-destructive">
+                    {t("dashboard.lowStockCount")}: {metrics.lowStock}
+                  </p>
+                ) : null}
+              </CardContent>
+            </Card>
+          );
+          return card.href ? (
+            <Link
+              key={card.key}
+              href={withLocale(locale, card.href)}
+              className="outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {content}
+            </Link>
           ) : (
             <div key={card.key}>{content}</div>
           );
@@ -178,7 +250,7 @@ export function DashboardView({
               </p>
             ) : (
               metrics.recentTickets.map((ticket) => (
-                <a
+                <Link
                   key={ticket.id}
                   href={withLocale(locale, `/projects/${ticket.projectId}`)}
                   className="block rounded-lg bg-muted/50 px-3 py-2 outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
@@ -192,7 +264,7 @@ export function DashboardView({
                     </div>
                     <Badge variant="outline">{ticket.status}</Badge>
                   </div>
-                </a>
+                </Link>
               ))
             )}
           </CardContent>

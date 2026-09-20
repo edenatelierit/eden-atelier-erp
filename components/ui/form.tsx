@@ -8,15 +8,17 @@ export function Form<T extends FieldValues>({
   children,
   onSubmit,
   className,
+  id,
 }: {
   form: UseFormReturn<T>;
   children: ReactNode;
   onSubmit: (values: T) => void | Promise<void>;
   className?: string;
+  id?: string;
 }) {
   return (
     <FormProvider {...form}>
-      <form className={className} onSubmit={form.handleSubmit(onSubmit)}>
+      <form id={id} className={className} onSubmit={form.handleSubmit(onSubmit)}>
         {children}
       </form>
     </FormProvider>

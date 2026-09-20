@@ -28,6 +28,7 @@ const ALLOWED_TYPES: Record<string, string> = {
 const IMAGE_UPLOADER_TYPES: Record<string, string> = {
   "image/jpeg": ".jpg",
   "image/png": ".png",
+  "application/pdf": ".pdf",
 };
 
 export async function uploadCloudImage(formData: FormData) {
@@ -35,15 +36,15 @@ export async function uploadCloudImage(formData: FormData) {
     await requireSession();
     const file = formData.get("file");
     if (!(file instanceof File) || file.size === 0) {
-      return { error: "Choose an image to upload." };
+      return { error: "Choose a file to upload." };
     }
     if (file.size > MAX_BYTES) {
-      return { error: "Image must be 8 MB or smaller." };
+      return { error: "File must be 8 MB or smaller." };
     }
 
     const extension = IMAGE_UPLOADER_TYPES[file.type];
     if (!extension) {
-      return { error: "Use a JPEG or PNG image." };
+      return { error: "Use a JPEG, PNG, or PDF file." };
     }
 
     const key = `uploads/${crypto.randomUUID()}${extension}`;

@@ -9,11 +9,9 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { DEMO_ADMIN } from "@/lib/client-options";
 
 export function LoginPageView() {
   const { t } = useI18n();
@@ -43,14 +41,6 @@ export function LoginPageView() {
           <CardContent>
             <LoginForm />
           </CardContent>
-          <CardFooter className="flex-col items-start gap-1">
-            <p className="text-sm text-muted-foreground">
-              {t("auth.testAdmin")}: {DEMO_ADMIN.email}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {t("auth.testPassword")}: {DEMO_ADMIN.password}
-            </p>
-          </CardFooter>
         </Card>
 
         <p className="text-center text-sm text-muted-foreground">

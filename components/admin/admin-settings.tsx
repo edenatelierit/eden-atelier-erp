@@ -1,6 +1,7 @@
 "use client";
 
 import { Layers, ScrollText, Users } from "lucide-react";
+import Link from "next/link";
 
 import { useI18n } from "@/components/locale-provider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,7 +44,7 @@ export function AdminSettings() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {links.map((item) => (
-          <a
+          <Link
             key={item.href}
             href={withLocale(locale, item.href)}
             className="group outline-none"
@@ -58,7 +59,7 @@ export function AdminSettings() {
               </CardHeader>
               <CardContent />
             </Card>
-          </a>
+          </Link>
         ))}
       </div>
     </div>

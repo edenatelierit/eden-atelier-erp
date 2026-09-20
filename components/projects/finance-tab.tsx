@@ -12,14 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { InlineFormPanel } from "@/components/ui/inline-form-panel";
 import { FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Form } from "@/components/ui/form";
 import { FormField, FormGrid } from "@/components/ui/form-grid";
@@ -65,7 +58,7 @@ const STATUS_VARIANT: Record<
   PAID: "default",
 };
 
-function UpdatePaymentDialog({
+function UpdatePaymentPanel({
   projectId,
   stage,
   open,
@@ -121,17 +114,43 @@ function UpdatePaymentDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{t("finance.updatePayment")}</DialogTitle>
-          <DialogDescription>
-            {stage
-              ? t(`options.paymentStages.${stage.stageName}`)
-              : t("finance.description")}
-          </DialogDescription>
-        </DialogHeader>
-        <Form form={form} onSubmit={onSubmit} className="space-y-4">
+    <InlineFormPanel
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={t("finance.updatePayment")}
+      description={
+        stage
+          ? t(`options.paymentStages.${stage.stageName}`)
+          : t("finance.description")
+      }
+      className="mx-4 mb-4"
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            {t("common.cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="update-payment-form"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin" />
+                {t("common.saving")}
+              </>
+            ) : (
+              t("finance.savePayment")
+            )}
+          </Button>
+        </>
+      }
+    >
+      <Form id="update-payment-form" form={form} onSubmit={onSubmit} className="space-y-4">
           <FieldGroup>
             <FormGrid>
               <FormField data-invalid={!!form.formState.errors.amountPaid}>
@@ -177,28 +196,8 @@ function UpdatePaymentDialog({
               {serverError}
             </p>
           ) : null}
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? (
-                <>
-                  <Loader2 className="animate-spin" />
-                  {t("common.saving")}
-                </>
-              ) : (
-                t("finance.savePayment")
-              )}
-            </Button>
-          </DialogFooter>
         </Form>
-      </DialogContent>
-    </Dialog>
+    </InlineFormPanel>
   );
 }
 
@@ -221,6 +220,12 @@ export function FinanceTab({
       title={t("finance.title")}
       description={t("finance.description")}
     >
+      <UpdatePaymentPanel
+        projectId={projectId}
+        stage={selected}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
       <CardContent className="pt-4">
         {stages.length === 0 ? (
           <p className="py-6 text-sm text-muted-foreground">
@@ -286,12 +291,6 @@ export function FinanceTab({
           </div>
         )}
       </CardContent>
-      <UpdatePaymentDialog
-        projectId={projectId}
-        stage={selected}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-      />
     </CollapsibleCard>
   );
 }

@@ -15,14 +15,7 @@ import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { InlineFormPanel } from "@/components/ui/inline-form-panel";
 import { FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Form } from "@/components/ui/form";
 import { FormField, FormGrid } from "@/components/ui/form-grid";
@@ -42,7 +35,7 @@ import {
   type CuttingListPartValues,
 } from "@/lib/validations/production";
 
-function CuttingListPartDialog({
+function CuttingListPartPanel({
   projectId,
   open,
   onOpenChange,
@@ -81,15 +74,35 @@ function CuttingListPartDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? t("production.editPart") : t("production.addPart")}
-          </DialogTitle>
-          <DialogDescription>{t("production.description")}</DialogDescription>
-        </DialogHeader>
-        <Form form={form} onSubmit={onSubmit} className="space-y-4">
+    <InlineFormPanel
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={isEditing ? t("production.editPart") : t("production.addPart")}
+      description={t("production.description")}
+      className="mx-4 mb-4"
+      footer={
+        <>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="cutting-list-part-form"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin" />
+                {t("production.saving")}
+              </>
+            ) : (
+              t("production.save")
+            )}
+          </Button>
+        </>
+      }
+    >
+      <Form id="cutting-list-part-form" form={form} onSubmit={onSubmit} className="space-y-4">
           <FieldGroup>
             <FormGrid>
               <FormField data-invalid={!!form.formState.errors.partNumber}>
@@ -154,24 +167,8 @@ function CuttingListPartDialog({
               {serverError}
             </p>
           ) : null}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? (
-                <>
-                  <Loader2 className="animate-spin" />
-                  {t("production.saving")}
-                </>
-              ) : (
-                t("production.save")
-              )}
-            </Button>
-          </DialogFooter>
         </Form>
-      </DialogContent>
-    </Dialog>
+    </InlineFormPanel>
   );
 }
 
@@ -210,6 +207,12 @@ export function CuttingListForm({
         </Button>
       }
     >
+      <CuttingListPartPanel
+        projectId={projectId}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        part={selected}
+      />
       <CardContent className="pt-4">
         {deleteError ? (
           <p className="mb-3 text-sm text-destructive" role="alert">
@@ -262,12 +265,6 @@ export function CuttingListForm({
           </div>
         )}
       </CardContent>
-      <CuttingListPartDialog
-        projectId={projectId}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        part={selected}
-      />
       <ConfirmDeleteDialog
         open={Boolean(pendingDelete)}
         onOpenChange={(open) => {

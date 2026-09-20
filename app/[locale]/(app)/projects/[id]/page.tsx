@@ -25,7 +25,7 @@ function asStringArray(value: unknown) {
 
 async function loadDirectoryData(projectId: string) {
   try {
-    const [suppliers, variationOrders, invoices] = await Promise.all([
+    const [suppliers, variationOrders, invoices, units] = await Promise.all([
       prisma.supplier.findMany({
         orderBy: { name: "asc" },
         select: { id: true, name: true, category: true },
@@ -38,11 +38,71 @@ async function loadDirectoryData(projectId: string) {
         where: { projectId },
         orderBy: { issueDate: "desc" },
       }),
+      prisma.unitOfMeasure.findMany({
+        orderBy: { nameEn: "asc" },
+        select: {
+          id: true,
+          nameEn: true,
+          nameAr: true,
+          symbol: true,
+          isSystem: true,
+        },
+      }),
     ]);
-    return { suppliers, variationOrders, invoices };
+    return { suppliers, variationOrders, invoices, units };
   } catch (error) {
     if (isMissingTable(error)) {
-      return { suppliers: [], variationOrders: [], invoices: [] };
+      return { suppliers: [], variationOrders: [], invoices: [], units: [] };
+    }
+    throw error;
+  }
+}
+
+async function loadEngineering(projectId: string) {
+  try {
+    const [materials, drawings] = await Promise.all([
+      prisma.materialApproval.findMany({
+        where: { projectId },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.drawingApproval.findMany({
+        where: { projectId },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+    return { materials, drawings };
+  } catch (error) {
+    if (isMissingTable(error)) {
+      return { materials: [], drawings: [] };
+    }
+    throw error;
+  }
+}
+
+async function loadBoqItems(projectId: string) {
+  try {
+    const rows = await prisma.boqItem.findMany({
+      where: { projectId },
+      orderBy: { createdAt: "asc" },
+      include: { unit: { select: { symbol: true } } },
+    });
+    return rows.map((item) => ({
+      id: item.id,
+      itemCode: item.itemCode,
+      description: item.description,
+      material: item.material,
+      unitId: item.unitId,
+      unitSymbol: item.unit.symbol,
+      quantity: item.quantity,
+      materialCost: item.materialCost,
+      laborCost: item.laborCost,
+      otherCost: item.otherCost,
+      totalCost: item.totalCost,
+      sellingPrice: item.sellingPrice,
+    }));
+  } catch (error) {
+    if (isMissingTable(error)) {
+      return [];
     }
     throw error;
   }
@@ -55,40 +115,67 @@ export default async function ProjectHubPage({
 }) {
   const { id } = await params;
 
-  const project = await prisma.project.findUnique({
-    where: { id },
-    include: {
-      client: true,
-      siteSurvey: true,
-      contract: true,
-      materialApprovals: { orderBy: { createdAt: "desc" } },
-      drawingApprovals: { orderBy: { createdAt: "desc" } },
-      cuttingListParts: { orderBy: { createdAt: "asc" } },
-      purchaseOrders: {
-        orderBy: { createdAt: "asc" },
-        include: { receivingNotes: { orderBy: { createdAt: "desc" } } },
+  const [project, directory, engineering, boqItems] = await Promise.all([
+    prisma.project.findUnique({
+      where: { id },
+      include: {
+        client: true,
+        siteSurvey: true,
+        contract: true,
+        cuttingListParts: { orderBy: { createdAt: "asc" } },
+        purchaseOrders: {
+          orderBy: { createdAt: "asc" },
+          include: { receivingNotes: { orderBy: { createdAt: "desc" } } },
+        },
+        qualityControl: true,
+        deliveryNotes: { orderBy: { createdAt: "desc" } },
+        installationReports: { orderBy: { reportDate: "desc" } },
+        paymentStages: { orderBy: { sortOrder: "asc" } },
+        workOrderPipeline: true,
+        handoverCertificate: true,
+        serviceRequests: { orderBy: { createdAt: "desc" } },
+        quotation: true,
       },
-      qualityControl: true,
-      deliveryNotes: { orderBy: { createdAt: "desc" } },
-      installationReports: { orderBy: { reportDate: "desc" } },
-      paymentStages: { orderBy: { sortOrder: "asc" } },
-      workOrderPipeline: true,
-      handoverCertificate: true,
-      serviceRequests: { orderBy: { createdAt: "desc" } },
-      quotation: true,
-    },
-  });
+    }),
+    loadDirectoryData(id),
+    loadEngineering(id),
+    loadBoqItems(id),
+  ]);
 
   if (!project) {
     notFound();
   }
 
-  const paymentStages =
+  const { suppliers, variationOrders, invoices, units } = directory;
+  const materialApprovals = engineering.materials;
+  const drawingApprovals = engineering.drawings;
+
+  const [paymentStages, pipelineRecord, attachments] = await Promise.all([
     project.paymentStages.length > 0
       ? project.paymentStages
-      : await ensurePaymentStages(project.id);
-  const pipelineRecord =
-    project.workOrderPipeline ?? (await ensureWorkOrderPipeline(project.id));
+      : ensurePaymentStages(project.id),
+    project.workOrderPipeline
+      ? project.workOrderPipeline
+      : ensureWorkOrderPipeline(project.id),
+    prisma.fileAttachment.findMany({
+      where: {
+        OR: [
+          { entityType: "SITE_SURVEY", entityId: project.id },
+          { entityType: "HANDOVER_CERTIFICATE", entityId: project.id },
+          {
+            entityType: "MATERIAL_APPROVAL",
+            entityId: { in: materialApprovals.map((item) => item.id) },
+          },
+          {
+            entityType: "SERVICE_REQUEST",
+            entityId: { in: project.serviceRequests.map((item) => item.id) },
+          },
+        ],
+      },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, entityType: true, entityId: true, fileUrl: true },
+    }),
+  ]);
   const workOrderPipeline = pipelineRecord
     ? {
         materialIssued: pipelineRecord.materialIssued,
@@ -160,29 +247,6 @@ export default async function ProjectHubPage({
       }
     : emptyQuotationValues;
 
-  const [attachments, directory] = await Promise.all([
-    prisma.fileAttachment.findMany({
-      where: {
-        OR: [
-          { entityType: "SITE_SURVEY", entityId: project.id },
-          { entityType: "HANDOVER_CERTIFICATE", entityId: project.id },
-          {
-            entityType: "MATERIAL_APPROVAL",
-            entityId: { in: project.materialApprovals.map((item) => item.id) },
-          },
-          {
-            entityType: "SERVICE_REQUEST",
-            entityId: { in: project.serviceRequests.map((item) => item.id) },
-          },
-        ],
-      },
-      orderBy: { createdAt: "asc" },
-      select: { id: true, entityType: true, entityId: true, fileUrl: true },
-    }),
-    loadDirectoryData(project.id),
-  ]);
-  const { suppliers, variationOrders, invoices } = directory;
-
   const surveyPhotos = attachments
     .filter((item) => item.entityType === "SITE_SURVEY")
     .map((item) => ({ id: item.id, url: item.fileUrl }));
@@ -246,27 +310,37 @@ export default async function ProjectHubPage({
         surveyPhotos,
         quotation,
         contract,
-        materialApprovals: project.materialApprovals.map((item) => ({
+        materialApprovals: materialApprovals.map((item) => ({
           id: item.id,
           itemLocation: item.itemLocation,
           material: item.material,
           supplier: item.supplier,
+          supplierId: item.supplierId ?? "",
           productCode: item.productCode,
           thickness: item.thickness,
           finish: item.finish,
-          sampleAttached: item.sampleAttached,
+          sampleAttached: item.sampleAttached || item.hasPhysicalSample,
+          hasPhysicalSample: item.hasPhysicalSample || item.sampleAttached,
+          hasPhotograph: item.hasPhotograph,
+          hasTechnicalData: item.hasTechnicalData,
           status: item.status,
           comments: item.comments,
           photos: materialPhotos.get(item.id) ?? [],
         })),
-        drawingApprovals: project.drawingApprovals.map((item) => ({
+        drawingApprovals: drawingApprovals.map((item) => ({
           id: item.id,
-          drawingNo: item.drawingNo,
+          drawingNumber: item.drawingNumber,
           title: item.title,
           revision: item.revision,
-          status: item.status,
+          fileUrl: item.fileUrl,
+          status: item.status === "REVISE" ? "REVISE_RESUBMIT" : item.status,
           comments: item.comments,
         })),
+        boqItems,
+        units,
+        hasApprovedShopDrawing: drawingApprovals.some(
+          (item) => item.status === "APPROVED"
+        ),
         cuttingList: project.cuttingListParts.map((part) => ({
           id: part.id,
           partNumber: part.partNumber,

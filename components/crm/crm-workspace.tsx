@@ -6,7 +6,7 @@ import { Suspense, useState } from "react";
 
 import { deleteClient } from "@/actions/client";
 import {
-  ClientFormDialog,
+  ClientFormPanel,
   type ClientRecord,
 } from "@/components/crm/client-form-dialog";
 import { ClientStatusBadge } from "@/components/crm/client-status-badge";
@@ -64,6 +64,12 @@ export function CrmWorkspace({
           {t("crm.addClient")}
         </Button>
       </div>
+
+      <ClientFormPanel
+        open={open}
+        onOpenChange={setOpen}
+        client={selected}
+      />
 
       <Suspense fallback={<div className="h-8 max-w-sm rounded-lg border border-input bg-background" />}>
         <TableSearch />
@@ -196,11 +202,6 @@ export function CrmWorkspace({
         </>
       )}
 
-      <ClientFormDialog
-        open={open}
-        onOpenChange={setOpen}
-        client={selected}
-      />
       <ConfirmDeleteDialog
         open={Boolean(pendingDelete)}
         onOpenChange={(nextOpen) => {

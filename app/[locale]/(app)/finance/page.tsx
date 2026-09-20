@@ -10,77 +10,60 @@ export const metadata: Metadata = {
   title: "Accounting",
 };
 
+async function fallbackEmpty<T>(promise: Promise<T>, empty: T) {
+  try {
+    return await promise;
+  } catch (error) {
+    if (!isMissingTable(error)) throw error;
+    return empty;
+  }
+}
+
 export default async function FinancePage() {
   await requirePageAccess("/finance");
 
-  const projects = await prisma.project.findMany({
-    orderBy: { projectNumber: "desc" },
-    select: { id: true, projectNumber: true },
-  });
+  const [projects, accounts, categoryRows, transactionRows] = await Promise.all([
+    prisma.project.findMany({
+      orderBy: { projectNumber: "desc" },
+      select: { id: true, projectNumber: true },
+    }),
+    fallbackEmpty(
+      prisma.account.findMany({
+        orderBy: [{ type: "asc" }, { name: "asc" }],
+      }),
+      []
+    ),
+    fallbackEmpty(
+      prisma.category.findMany({
+        where: { type: { in: ["EXPENSE", "INCOME"] } },
+        orderBy: [{ code: "asc" }, { nameEn: "asc" }],
+      }),
+      []
+    ),
+    fallbackEmpty(
+      prisma.transaction.findMany({
+        orderBy: { date: "desc" },
+        take: 200,
+        include: {
+          account: { select: { name: true, currency: true } },
+          project: { select: { projectNumber: true } },
+          masterCategory: { select: { nameEn: true, nameAr: true } },
+        },
+      }),
+      []
+    ),
+  ]);
 
-  let accounts: Awaited<ReturnType<typeof prisma.account.findMany>> = [];
-  let expenseCategories: CategoryOption[] = [];
-  let transactions: {
-    id: string;
-    date: Date;
-    type: "INCOME" | "EXPENSE" | "TRANSFER";
-    category: string;
-    categoryId: string | null;
-    amount: number;
-    currency: "USD" | "LBP";
-    exchangeRate: number | null;
-    account: { name: string; currency: "USD" | "LBP" };
-    project: { projectNumber: string } | null;
-    masterCategory: { nameEn: string; nameAr: string } | null;
-  }[] = [];
-
-  try {
-    accounts = await prisma.account.findMany({
-      orderBy: [{ type: "asc" }, { name: "asc" }],
-    });
-  } catch (error) {
-    if (!isMissingTable(error)) throw error;
-  }
-
-  try {
-    const rows = await prisma.category.findMany({
-      where: { type: "EXPENSE" },
-      orderBy: [{ code: "asc" }, { nameEn: "asc" }],
-    });
-    expenseCategories = rows.map((item) => ({
-      id: item.id,
-      nameEn: item.nameEn,
-      nameAr: item.nameAr,
-      type: item.type,
-      code: item.code,
-      isSystem: item.isSystem,
-    }));
-  } catch (error) {
-    if (!isMissingTable(error)) throw error;
-  }
-
-  try {
-    const rows = await prisma.transaction.findMany({
-      orderBy: { date: "desc" },
-      take: 200,
-      include: {
-        account: { select: { name: true, currency: true } },
-        project: { select: { projectNumber: true } },
-        masterCategory: { select: { nameEn: true, nameAr: true } },
-      },
-    });
-    transactions = rows.map((item) => ({
-      ...item,
-      masterCategory: item.masterCategory
-        ? {
-            nameEn: item.masterCategory.nameEn,
-            nameAr: item.masterCategory.nameAr,
-          }
-        : null,
-    }));
-  } catch (error) {
-    if (!isMissingTable(error)) throw error;
-  }
+  const mappedCategories: CategoryOption[] = categoryRows.map((item) => ({
+    id: item.id,
+    nameEn: item.nameEn,
+    nameAr: item.nameAr,
+    type: item.type,
+    code: item.code,
+    isSystem: item.isSystem,
+  }));
+  const expenseCategories = mappedCategories.filter((item) => item.type === "EXPENSE");
+  const incomeCategories = mappedCategories.filter((item) => item.type === "INCOME");
 
   return (
     <FinanceWorkspace
@@ -91,7 +74,7 @@ export default async function FinancePage() {
         balance: account.balance,
         currency: account.currency === "LBP" ? "LBP" : "USD",
       }))}
-      transactions={transactions.map((item) => ({
+      transactions={transactionRows.map((item) => ({
         id: item.id,
         date: item.date.toISOString().slice(0, 10),
         type: item.type,
@@ -108,6 +91,7 @@ export default async function FinancePage() {
       }))}
       projects={projects}
       expenseCategories={expenseCategories}
+      incomeCategories={incomeCategories}
     />
   );
 }

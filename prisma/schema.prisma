@@ -84,12 +84,14 @@ enum ServiceRequestStatus {
 enum MaterialApprovalStatus {
   APPROVED
   APPROVED_WITH_COMMENTS
+  REVISE_RESUBMIT
   REJECTED
 }
 
 enum DrawingApprovalStatus {
   APPROVED
   APPROVED_WITH_COMMENTS
+  REVISE_RESUBMIT
   REVISE
   REJECTED
 }
@@ -120,6 +122,7 @@ enum Currency {
 enum CategoryType {
   INVENTORY
   EXPENSE
+  INCOME
   LEAD_SOURCE
 }
 
@@ -234,6 +237,7 @@ model Project {
   cashTransactions      Transaction[]
   timesheets            Timesheet[]
   invoices              Invoice[]
+  boqItems              BoqItem[]
 
   @@index([clientId])
   @@index([status])
@@ -295,19 +299,22 @@ model Contract {
 
 /// Client-facing material specification and sample sign-off.
 model MaterialApproval {
-  id             String                 @id @default(cuid())
-  projectId      String
-  itemLocation   String
-  material       String
-  supplier       String
-  supplierId     String?
-  productCode    String
-  thickness      String
-  finish         String
-  sampleAttached Boolean                @default(false)
-  status         MaterialApprovalStatus
-  comments       String?
-  photoUrls      Json                   @default("[]")
+  id                 String                 @id @default(cuid())
+  projectId          String
+  itemLocation       String
+  material           String
+  supplier           String
+  supplierId         String?
+  productCode        String
+  thickness          String                 @default("")
+  finish             String                 @default("")
+  sampleAttached     Boolean                @default(false)
+  hasPhysicalSample  Boolean                @default(false)
+  hasPhotograph      Boolean                @default(false)
+  hasTechnicalData   Boolean                @default(false)
+  status             MaterialApprovalStatus
+  comments           String?
+  photoUrls          Json                   @default("[]")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -322,13 +329,14 @@ model MaterialApproval {
 
 /// Shop drawing revision log for a project.
 model DrawingApproval {
-  id        String                @id @default(cuid())
-  projectId String
-  drawingNo String
-  title     String
-  revision  String
-  status    DrawingApprovalStatus
-  comments  String?
+  id             String                @id @default(cuid())
+  projectId      String
+  drawingNumber  String                @map("drawingNo")
+  title          String
+  revision       String
+  fileUrl        String?
+  status         DrawingApprovalStatus
+  comments       String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -360,6 +368,32 @@ model CuttingListPart {
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
+}
+
+/// Bill of quantities line used for project cost estimation and margin.
+model BoqItem {
+  id           String @id @default(cuid())
+  projectId    String
+  itemCode     String
+  description  String
+  material     String
+  unitId       String
+  quantity     Float
+  materialCost Float
+  laborCost    Float
+  otherCost    Float
+  totalCost    Float
+  sellingPrice Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  unit    UnitOfMeasure @relation(fields: [unitId], references: [id], onDelete: Restrict)
+
+  @@index([projectId])
+  @@index([unitId])
+  @@index([itemCode])
 }
 
 /// Supplier purchase line against a project.
@@ -723,6 +757,7 @@ model UnitOfMeasure {
   updatedAt DateTime @updatedAt
 
   inventoryItems InventoryItem[]
+  boqItems       BoqItem[]
 
   @@index([symbol])
 }

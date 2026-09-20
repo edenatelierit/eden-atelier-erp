@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import { deleteUser } from "@/actions/user";
 import {
-  UserFormDialog,
+  UserFormPanel,
   type UserRecord,
 } from "@/components/admin/user-form-dialog";
 import { useI18n } from "@/components/locale-provider";
@@ -62,6 +62,8 @@ export function UsersWorkspace({ users }: { users: UserRecord[] }) {
           {t("admin.addUser")}
         </Button>
       </div>
+
+      <UserFormPanel open={open} onOpenChange={setOpen} user={selected} />
 
       {deleteError ? (
         <p className="text-sm text-destructive" role="alert">
@@ -120,7 +122,6 @@ export function UsersWorkspace({ users }: { users: UserRecord[] }) {
         </div>
       )}
 
-      <UserFormDialog open={open} onOpenChange={setOpen} user={selected} />
       <ConfirmDeleteDialog
         open={Boolean(pendingDelete)}
         onOpenChange={(nextOpen) => {

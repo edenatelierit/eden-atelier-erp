@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useI18n } from "@/components/locale-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -63,12 +65,12 @@ export function OpsProjectList({
               {projects.map((project) => (
                 <TableRow key={project.id}>
                   <TableCell className="font-medium">
-                    <a
+                    <Link
                       href={withLocale(locale, `/projects/${project.id}`)}
                       className="hover:underline"
                     >
                       {project.projectNumber}
-                    </a>
+                    </Link>
                   </TableCell>
                   <TableCell>{project.clientName}</TableCell>
                   <TableCell className="text-muted-foreground">

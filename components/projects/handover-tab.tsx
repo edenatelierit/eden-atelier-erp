@@ -20,18 +20,12 @@ import { CardContent, CardFooter } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Form } from "@/components/ui/form";
 import { FormField, FormGrid } from "@/components/ui/form-grid";
+import { ImageUpload } from "@/components/ui/image-upload";
 import { ImageUploader } from "@/components/ui/image-uploader";
+import { InlineFormPanel } from "@/components/ui/inline-form-panel";
 import { Input } from "@/components/ui/input";
 import { RowActions } from "@/components/ui/row-actions";
 import {
@@ -285,150 +279,159 @@ function ServiceRequestDialog({
   }
 
   return (
-    <Dialog
+    <InlineFormPanel
       open={open}
-      onOpenChange={onOpenChange}
+      onClose={() => onOpenChange(false)}
+      title={isEditing ? t("service.editRequest") : t("service.newRequest")}
+      description={t("service.description")}
+      className="mb-4"
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            {t("common.cancel")}
+          </Button>
+          <Button
+            type="submit"
+            form="service-request-form"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin" />
+                {t("common.saving")}
+              </>
+            ) : (
+              t("service.save")
+            )}
+          </Button>
+        </>
+      }
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? t("service.editRequest") : t("service.newRequest")}
-          </DialogTitle>
-          <DialogDescription>{t("service.description")}</DialogDescription>
-        </DialogHeader>
-        <Form form={form} onSubmit={onSubmit} className="space-y-4">
-          <FieldGroup>
-            <FormGrid>
-              <FormField data-invalid={!!form.formState.errors.dateReported}>
-                <FieldLabel htmlFor="dateReported">
-                  {t("service.dateReported")}
-                </FieldLabel>
-                <Input
-                  id="dateReported"
-                  type="date"
-                  {...form.register("dateReported")}
-                />
-                <FieldError errors={[form.formState.errors.dateReported]} />
-              </FormField>
-              <FormField>
-                <FieldLabel>{t("service.warrantyStatus")}</FieldLabel>
-                <Controller
-                  control={form.control}
-                  name="warrantyStatus"
-                  render={({ field }) => (
-                    <Select
-                      value={field.value}
-                      onValueChange={(value) => {
-                        if (value) field.onChange(value);
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue>
-                          {t(`options.warrantyStatuses.${field.value}`)}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent alignItemWithTrigger={false}>
-                        {WARRANTY_STATUSES.map((value) => (
-                          <SelectItem key={value} value={value}>
-                            {t(`options.warrantyStatuses.${value}`)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </FormField>
-              <FormField>
-                <FieldLabel>{t("service.status")}</FieldLabel>
-                <Controller
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <Select
-                      value={field.value}
-                      onValueChange={(value) => {
-                        if (value) field.onChange(value);
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue>
-                          {t(`options.serviceStatuses.${field.value}`)}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent alignItemWithTrigger={false}>
-                        {SERVICE_STATUSES.map((value) => (
-                          <SelectItem key={value} value={value}>
-                            {t(`options.serviceStatuses.${value}`)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </FormField>
-              <FormField data-invalid={!!form.formState.errors.technician}>
-                <FieldLabel htmlFor="technician">
-                  {t("service.technician")}
-                </FieldLabel>
-                <Input id="technician" {...form.register("technician")} />
-                <FieldError errors={[form.formState.errors.technician]} />
-              </FormField>
-              <FormField>
-                <FieldLabel htmlFor="visitDate">{t("service.visitDate")}</FieldLabel>
-                <Input
-                  id="visitDate"
-                  type="date"
-                  {...form.register("visitDate")}
-                />
-              </FormField>
-              <FormField span="wide" data-invalid={!!form.formState.errors.issue}>
-                <FieldLabel htmlFor="issue">{t("service.issue")}</FieldLabel>
-                <Input id="issue" {...form.register("issue")} />
-                <FieldError errors={[form.formState.errors.issue]} />
-              </FormField>
-              <FormField span="wide">
-                <FieldLabel htmlFor="diagnosis">{t("service.diagnosis")}</FieldLabel>
-                <Input id="diagnosis" {...form.register("diagnosis")} />
-              </FormField>
-              {request?.id ? (
-                <FormField span="full">
-                  <FieldLabel>{t("service.photos")}</FieldLabel>
-                  <ImageUpload
-                    entityType="SERVICE_REQUEST"
-                    entityId={request.id}
-                    photos={photos}
-                  />
-                </FormField>
-              ) : null}
-            </FormGrid>
-          </FieldGroup>
-          {serverError ? (
-            <p className="text-sm text-destructive" role="alert">
-              {serverError}
-            </p>
-          ) : null}
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
+      <Form
+        id="service-request-form"
+        form={form}
+        onSubmit={onSubmit}
+        className="space-y-4"
+      >
+        <FieldGroup>
+          <FormGrid>
+            <FormField data-invalid={!!form.formState.errors.dateReported}>
+              <FieldLabel htmlFor="dateReported">
+                {t("service.dateReported")}
+              </FieldLabel>
+              <Input
+                id="dateReported"
+                type="date"
+                {...form.register("dateReported")}
+              />
+              <FieldError errors={[form.formState.errors.dateReported]} />
+            </FormField>
+            <FormField>
+              <FieldLabel>{t("service.warrantyStatus")}</FieldLabel>
+              <Controller
+                control={form.control}
+                name="warrantyStatus"
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    onValueChange={(value) => {
+                      if (value) field.onChange(value);
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue>
+                        {t(`options.warrantyStatuses.${field.value}`)}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent alignItemWithTrigger={false}>
+                      {WARRANTY_STATUSES.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {t(`options.warrantyStatuses.${value}`)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </FormField>
+            <FormField>
+              <FieldLabel>{t("service.status")}</FieldLabel>
+              <Controller
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    onValueChange={(value) => {
+                      if (value) field.onChange(value);
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue>
+                        {t(`options.serviceStatuses.${field.value}`)}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent alignItemWithTrigger={false}>
+                      {SERVICE_STATUSES.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {t(`options.serviceStatuses.${value}`)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </FormField>
+            <FormField
+              span="medium"
+              data-invalid={!!form.formState.errors.technician}
             >
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? (
-                <>
-                  <Loader2 className="animate-spin" />
-                  {t("common.saving")}
-                </>
-              ) : (
-                t("service.save")
-              )}
-            </Button>
-          </DialogFooter>
-        </Form>
-      </DialogContent>
-    </Dialog>
+              <FieldLabel htmlFor="technician">
+                {t("service.technician")}
+              </FieldLabel>
+              <Input id="technician" {...form.register("technician")} />
+              <FieldError errors={[form.formState.errors.technician]} />
+            </FormField>
+            <FormField>
+              <FieldLabel htmlFor="visitDate">{t("service.visitDate")}</FieldLabel>
+              <Input
+                id="visitDate"
+                type="date"
+                {...form.register("visitDate")}
+              />
+            </FormField>
+            <FormField span="wide" data-invalid={!!form.formState.errors.issue}>
+              <FieldLabel htmlFor="issue">{t("service.issue")}</FieldLabel>
+              <Input id="issue" {...form.register("issue")} />
+              <FieldError errors={[form.formState.errors.issue]} />
+            </FormField>
+            <FormField span="wide">
+              <FieldLabel htmlFor="diagnosis">{t("service.diagnosis")}</FieldLabel>
+              <Input id="diagnosis" {...form.register("diagnosis")} />
+            </FormField>
+            {request?.id ? (
+              <FormField span="full">
+                <FieldLabel>{t("service.photos")}</FieldLabel>
+                <ImageUpload
+                  entityType="SERVICE_REQUEST"
+                  entityId={request.id}
+                  photos={photos}
+                />
+              </FormField>
+            ) : null}
+          </FormGrid>
+        </FieldGroup>
+        {serverError ? (
+          <p className="text-sm text-destructive" role="alert">
+            {serverError}
+          </p>
+        ) : null}
+      </Form>
+    </InlineFormPanel>
   );
 }
 
@@ -480,6 +483,17 @@ function ServiceRequestsCard({
       }
     >
       <CardContent className="pt-4">
+        <ServiceRequestDialog
+          projectId={projectId}
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          request={selected}
+          photos={
+            selected?.id
+              ? requests.find((row) => row.id === selected.id)?.photos ?? []
+              : []
+          }
+        />
         {deleteError ? (
           <p className="mb-3 text-sm text-destructive" role="alert">
             {deleteError}
@@ -530,17 +544,6 @@ function ServiceRequestsCard({
           </div>
         )}
       </CardContent>
-      <ServiceRequestDialog
-        projectId={projectId}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        request={selected}
-        photos={
-          selected?.id
-            ? requests.find((row) => row.id === selected.id)?.photos ?? []
-            : []
-        }
-      />
       <ConfirmDeleteDialog
         open={Boolean(pendingDelete)}
         onOpenChange={(open) => {

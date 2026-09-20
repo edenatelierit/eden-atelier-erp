@@ -9,6 +9,7 @@ alwaysApply: true
 Match purchase orders. Fields sit next to each other in `FormGrid` / `FormField` from `@/components/ui/form-grid`. Do not stretch every input to a third or half of the card.
 
 - **compact** (default): qty, unit, price, totals, dates, codes, revision, thickness, status, yes/no
+- **medium**: phone, email, person names, account names, most selects that need readable text
 - **wide**: remarks, comments, specification, descriptions, locations that need a sentence
 - **full**: only when a line must use the whole row
 
@@ -17,8 +18,13 @@ Prefer a single-line `Input` for notes. Use `Textarea` only for real paragraphs,
 ```tsx
 <FormGrid>
   <FormField><FieldLabel>Qty</FieldLabel><Input type="number" /></FormField>
+  <FormField span="medium"><FieldLabel>Phone</FieldLabel><Input type="tel" /></FormField>
   <FormField span="wide"><FieldLabel>Remarks</FieldLabel><Input /></FormField>
 </FormGrid>
 ```
+
+# Add / edit entry UI
+
+Do **not** open a modal `Dialog` for create/edit data entry on list or workspace pages. Use `InlineFormPanel` from `@/components/ui/inline-form-panel` so the page stays visible while filling the form. Keep `ConfirmDeleteDialog` (and similar confirmations) as dialogs.
 
 Do not use `sm:grid-cols-2` / `lg:grid-cols-3` equal-width grids for mixed short and long values. Keep `gap-3` and `CardContent` at `pt-4`, not `gap-4` / `pt-6` / `space-y-8`.

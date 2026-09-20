@@ -9,6 +9,7 @@ const variants: Record<
 > = {
   APPROVED: "default",
   APPROVED_WITH_COMMENTS: "outline",
+  REVISE_RESUBMIT: "secondary",
   REVISE: "secondary",
   REJECTED: "destructive",
 };
