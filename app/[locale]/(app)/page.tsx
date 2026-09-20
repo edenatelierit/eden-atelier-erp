@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { DashboardView } from "@/components/dashboard/dashboard-view";
-import { auth } from "@/auth";
+import { getSession } from "@/lib/auth-guard";
 import { prisma } from "@/lib/prisma";
 import { isMissingTable } from "@/lib/prisma-missing";
 import { roundUsd } from "@/lib/money";
@@ -93,7 +93,7 @@ async function loadMoneySnapshot() {
 }
 
 export default async function Home() {
-  const session = await auth();
+  const session = await getSession();
 
   const [
     activeProjects,

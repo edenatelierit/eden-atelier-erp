@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Geist, Geist_Mono, Noto_Sans_Arabic, Source_Serif_4 } from "next/font/google";
 
-import { auth } from "@/auth";
 import { AuthProvider } from "@/components/auth-provider";
 import { ThemeProvider } from "@/components/theme-provider";
+import { getSession } from "@/lib/auth-guard";
 import {
   defaultLocale,
   isLocale,
@@ -48,7 +48,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const headerLocale = (await headers()).get("x-locale") ?? defaultLocale;
   const locale = isLocale(headerLocale) ? headerLocale : defaultLocale;
   const dir = localeDirection(locale);
-  const session = await auth();
+  const session = await getSession();
 
   return (
     <html

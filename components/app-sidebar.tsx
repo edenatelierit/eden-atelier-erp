@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -10,12 +10,14 @@ import {
   Landmark,
   LayoutDashboard,
   Boxes,
+  Loader2,
   ScrollText,
   Shield,
   Store,
   Truck,
   Users,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { useI18n } from "@/components/locale-provider";
@@ -34,6 +36,7 @@ import {
 } from "@/components/ui/sidebar";
 import { stripLocale, withLocale } from "@/i18n/config";
 import { canAccessPath, isSuperAdmin } from "@/lib/rbac";
+import { cn } from "cn";
 
 const workspaceNav = [
   { key: "nav.dashboard", href: "/", icon: LayoutDashboard },
@@ -51,6 +54,45 @@ const adminNav = [
   { key: "nav.users", href: "/admin/users", icon: Users },
   { key: "nav.auditLogs", href: "/admin/audit-logs", icon: ScrollText },
 ] as const;
+
+function NavPendingHint() {
+  const { pending } = useLinkStatus();
+  return (
+    <Loader2
+      aria-hidden
+      className={cn(
+        "ms-auto size-3.5 shrink-0 opacity-0 transition-opacity",
+        pending && "animate-spin opacity-70 [animation-delay:100ms]"
+      )}
+    />
+  );
+}
+
+function NavItem({
+  href,
+  title,
+  icon: Icon,
+  isActive,
+}: {
+  href: string;
+  title: string;
+  icon: LucideIcon;
+  isActive: boolean;
+}) {
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        render={<Link href={href} prefetch />}
+        isActive={isActive}
+        tooltip={title}
+      >
+        <Icon />
+        <span>{title}</span>
+        <NavPendingHint />
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -71,6 +113,7 @@ export function AppSidebar() {
       <SidebarHeader className="px-3 py-4">
         <Link
           href={withLocale(locale, "/")}
+          prefetch
           className="flex items-center gap-3 overflow-hidden rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
         >
           <BrandLogo variant="sidebar" className="shrink-0" priority />
@@ -98,19 +141,15 @@ export function AppSidebar() {
                   item.href === "/"
                     ? currentPath === "/"
                     : currentPath.startsWith(item.href);
-                const title = t(item.key);
 
                 return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      render={<Link href={href} />}
-                      isActive={isActive}
-                      tooltip={title}
-                    >
-                      <item.icon />
-                      <span>{title}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  <NavItem
+                    key={item.href}
+                    href={href}
+                    title={t(item.key)}
+                    icon={item.icon}
+                    isActive={isActive}
+                  />
                 );
               })}
             </SidebarMenu>
@@ -122,30 +161,22 @@ export function AppSidebar() {
             <SidebarGroupLabel>{t("nav.admin")}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    render={<Link href={withLocale(locale, "/admin/settings")} />}
-                    isActive={currentPath === "/admin/settings"}
-                    tooltip={t("nav.settings")}
-                  >
-                    <Shield />
-                    <span>{t("nav.settings")}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <NavItem
+                  href={withLocale(locale, "/admin/settings")}
+                  title={t("nav.settings")}
+                  icon={Shield}
+                  isActive={currentPath === "/admin/settings"}
+                />
                 {adminNav.map((item) => {
                   const href = withLocale(locale, item.href);
-                  const title = t(item.key);
                   return (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton
-                        render={<Link href={href} />}
-                        isActive={currentPath.startsWith(item.href)}
-                        tooltip={title}
-                      >
-                        <item.icon />
-                        <span>{title}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    <NavItem
+                      key={item.href}
+                      href={href}
+                      title={t(item.key)}
+                      icon={item.icon}
+                      isActive={currentPath.startsWith(item.href)}
+                    />
                   );
                 })}
               </SidebarMenu>

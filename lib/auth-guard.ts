@@ -1,11 +1,15 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import type { Role } from "@prisma/client";
 
 import { auth } from "@/auth";
 import { canAccessPath, isSuperAdmin } from "@/lib/rbac";
 
+/** One JWT decode per request — shared by layout + page guards. */
+export const getSession = cache(async () => auth());
+
 export async function requireSession() {
-  const session = await auth();
+  const session = await getSession();
   if (!session?.user?.id || !session.user.role) {
     throw new Error("You must be signed in.");
   }
@@ -18,7 +22,7 @@ export async function requireSession() {
 }
 
 export async function requirePageAccess(path: string) {
-  const session = await auth();
+  const session = await getSession();
   if (!session?.user?.role || !canAccessPath(session.user.role, path)) {
     redirect("/");
   }

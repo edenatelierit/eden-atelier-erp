@@ -12,13 +12,12 @@ export const metadata: Metadata = {
 export default async function HrPage() {
   await requirePageAccess("/hr");
 
-  const projects = await prisma.project.findMany({
-    orderBy: { projectNumber: "desc" },
-    select: { id: true, projectNumber: true },
-  });
-
   try {
-    const [employees, timesheets] = await Promise.all([
+    const [projects, employees, timesheets] = await Promise.all([
+      prisma.project.findMany({
+        orderBy: { projectNumber: "desc" },
+        select: { id: true, projectNumber: true },
+      }),
       prisma.employee.findMany({ orderBy: { name: "asc" } }),
       prisma.timesheet.findMany({
         orderBy: { date: "desc" },
@@ -58,5 +57,5 @@ export default async function HrPage() {
     if (!isMissingTable(error)) throw error;
   }
 
-  return <HrWorkspace projects={projects} employees={[]} timesheets={[]} />;
+  return <HrWorkspace projects={[]} employees={[]} timesheets={[]} />;
 }
